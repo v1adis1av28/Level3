@@ -13,13 +13,14 @@ import (
 )
 
 type App struct {
-	DB     *dbpg.DB
-	Router *ginext.Engine
-	Server *http.Server
-	Config *config.Config
+	DB      *dbpg.DB
+	Router  *ginext.Engine
+	Server  *http.Server
+	Config  *config.Config
+	Handler *handlers.Handler
 }
 
-func NewApp(db *dbpg.DB, cfg *config.Config) *App {
+func NewApp(db *dbpg.DB, cfg *config.Config, handler *handlers.Handler) *App {
 	router := ginext.New("")
 
 	router.Use(func(c *ginext.Context) {
@@ -41,10 +42,11 @@ func NewApp(db *dbpg.DB, cfg *config.Config) *App {
 	}
 
 	app := &App{
-		DB:     db,
-		Router: router,
-		Server: server,
-		Config: cfg,
+		DB:      db,
+		Router:  router,
+		Server:  server,
+		Config:  cfg,
+		Handler: handler,
 	}
 
 	err := app.SetupRoutes()
@@ -56,9 +58,9 @@ func NewApp(db *dbpg.DB, cfg *config.Config) *App {
 }
 
 func (a *App) SetupRoutes() error {
-	a.Router.GET("/notify/{id}", handlers.GetNotificationHandler)
-	a.Router.POST("/notify", handlers.CreateNotificationHandler)
-	a.Router.DELETE("/notify/{id}", handlers.DeleteNotificationHandler)
+	a.Router.GET("/notify/{id}", a.Handler.GetNotificationHandler)
+	a.Router.POST("/notify", a.Handler.CreateNotificationHandler)
+	a.Router.DELETE("/notify/{id}", a.Handler.DeleteNotificationHandler)
 	return nil
 }
 

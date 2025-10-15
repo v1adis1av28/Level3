@@ -9,6 +9,8 @@ import (
 
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/app"
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/config"
+	"github.com/v1adis1av28/level3/DelayedNotifier/internal/handlers"
+	"github.com/v1adis1av28/level3/DelayedNotifier/internal/service"
 	"github.com/wb-go/wbf/dbpg"
 	"github.com/wb-go/wbf/zlog"
 )
@@ -17,7 +19,9 @@ func main() {
 	config, err := config.NewAppConfig()
 	if err != nil {
 		fmt.Println(err.Error())
+		os.Exit(1)
 	}
+
 	zlog.Init()
 	dbOpt := &dbpg.Options{
 		MaxOpenConns:    50,
@@ -29,7 +33,9 @@ func main() {
 		fmt.Errorf("eror on creating db %w", err)
 		os.Exit(1)
 	}
-	app := app.NewApp(db, config)
+	notificationService := service.NewNotificationService(db)
+	notificationHandler := handlers.NewHandler(notificationService)
+	app := app.NewApp(db, config, notificationHandler)
 	go func() {
 		app.MustStart()
 	}()

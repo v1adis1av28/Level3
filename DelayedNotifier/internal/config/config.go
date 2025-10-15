@@ -30,7 +30,7 @@ type Config struct {
 func NewAppConfig() (*Config, error) {
 	appConfig := &Config{}
 	cfg := config.New()
-	err := cfg.Load("../config/dev.yml", "", "")
+	err := cfg.Load("./config/dev.yml", "", "")
 	if err != nil {
 		return appConfig, fmt.Errorf("failed to load config: %w", err)
 	}
