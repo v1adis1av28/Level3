@@ -1,0 +1,9 @@
+server:
+  addr: ":8080"
+rabbitMQ:
+  port: ":5672"
+  retries: 5
+  host: "localhost"
+db:
+  masterDB: "postgres://postgres:postgres@db:5432/notifications?sslmode=disable"
+  
