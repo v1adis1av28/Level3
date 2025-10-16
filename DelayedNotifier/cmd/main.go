@@ -34,8 +34,13 @@ func main() {
 		fmt.Errorf("eror on creating db %w", err)
 		os.Exit(1)
 	}
+	fmt.Println("create db")
 	notificationService := service.NewNotificationService(db)
+	fmt.Println("Create notification service")
+	fmt.Println(notificationService)
+	fmt.Println("Creating handler")
 	notificationHandler := handlers.NewHandler(notificationService)
+	fmt.Println(notificationHandler)
 	app := app.NewApp(db, config, notificationHandler)
 	go func() {
 		app.MustStart()
