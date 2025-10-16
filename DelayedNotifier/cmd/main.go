@@ -20,6 +20,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
+		return
 	}
 
 	zlog.Init()
