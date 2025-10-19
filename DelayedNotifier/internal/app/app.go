@@ -58,9 +58,9 @@ func NewApp(db *dbpg.DB, cfg *config.Config, handler *handlers.Handler) *App {
 }
 
 func (a *App) SetupRoutes() error {
-	a.Router.GET("/notify/{id}", a.Handler.GetNotificationHandler)
+	a.Router.GET("/notify/:id", a.Handler.GetNotificationHandler)
 	a.Router.POST("/notify", a.Handler.CreateNotificationHandler)
-	a.Router.DELETE("/notify/{id}", a.Handler.DeleteNotificationHandler)
+	a.Router.DELETE("/notify/:id", a.Handler.DeleteNotificationHandler)
 	return nil
 }
 

@@ -14,6 +14,8 @@ import (
 	"github.com/wb-go/wbf/rabbitmq"
 )
 
+//TODO добавить фоновый обработчик для отправки уведомлений
+
 type NotificationProcessor struct {
 	processedCount int
 	failedCount    int

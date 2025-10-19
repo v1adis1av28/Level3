@@ -133,3 +133,24 @@ func (ns *NotificationService) CreateNotification(notification *models.Notificat
 
 	return nil
 }
+
+func (ns *NotificationService) GetNotification(id int) (*models.NotificationDB, error) {
+	var notification models.NotificationDB
+	err := ns.DB.QueryRowContext(context.Background(), "SELECT N.ID, N.TEXT, N.STATUS, N.SENDTIME, N.USERID FROM NOTIFICATIONS AS N WHERE ID = $1", id).Scan(&notification.ID, &notification.Text, &notification.Status, &notification.TimeToSend, &notification.UserId)
+	if err != nil {
+		return nil, fmt.Errorf("error while searching notifications")
+	}
+	return &notification, nil
+}
+
+func (ns *NotificationService) IsNotificationExist(id int) error {
+	var exist bool
+	err := ns.DB.QueryRowContext(context.Background(), "SELECT EXISTS(SELECT N.ID, N.TEXT, N.STATUS, N.SENDTIME, N.USERID FROM NOTIFICATIONS AS N WHERE ID = $1)", id).Scan(&exist)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("notification with this id doesn`t exist")
+	}
+	return nil
+}
