@@ -9,9 +9,11 @@ import (
 
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/app"
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/config"
+	"github.com/v1adis1av28/level3/DelayedNotifier/internal/consumer"
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/handlers"
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/service"
 	"github.com/wb-go/wbf/dbpg"
+	"github.com/wb-go/wbf/rabbitmq"
 	"github.com/wb-go/wbf/zlog"
 )
 
@@ -34,17 +36,21 @@ func main() {
 		fmt.Errorf("eror on creating db %w", err)
 		os.Exit(1)
 	}
-	fmt.Println("create db")
 	notificationService := service.NewNotificationService(db)
-	fmt.Println("Create notification service")
-	fmt.Println(notificationService)
-	fmt.Println("Creating handler")
+	defer notificationService.Producer.Close()
 	notificationHandler := handlers.NewHandler(notificationService)
-	fmt.Println(notificationHandler)
 	app := app.NewApp(db, config, notificationHandler)
+	msgConsumer := rabbitmq.NewConsumer(notificationService.Producer, config.ConsumerConfig)
+
 	go func() {
 		app.MustStart()
 	}()
+	processor := &consumer.NotificationProcessor{}
+
+	go func() {
+		consumer.ConsumeWithShutdown(msgConsumer, processor)
+	}()
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 	<-stop

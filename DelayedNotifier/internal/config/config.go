@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/wb-go/wbf/config"
+	"github.com/wb-go/wbf/rabbitmq"
 )
 
 type serverConfig struct {
@@ -22,9 +24,10 @@ type DbConfig struct {
 }
 
 type Config struct {
-	ServerConfig  serverConfig
-	RabbiMQConfig rabbiMQConfig
-	DBConfig      DbConfig
+	ServerConfig   serverConfig
+	RabbiMQConfig  rabbiMQConfig
+	DBConfig       DbConfig
+	ConsumerConfig *rabbitmq.ConsumerConfig
 }
 
 func NewAppConfig() (*Config, error) {
@@ -41,5 +44,18 @@ func NewAppConfig() (*Config, error) {
 	appConfig.DBConfig.DB = cfg.GetString("db.masterDB")
 
 	appConfig.DBConfig.Slaves = append(appConfig.DBConfig.Slaves, appConfig.DBConfig.DB)
+
+	consConf := &rabbitmq.ConsumerConfig{
+		Queue:     "notifications",
+		Consumer:  "notification-processor",
+		AutoAck:   false,
+		Exclusive: false,
+		NoLocal:   false,
+		NoWait:    false,
+		Args: amqp091.Table{
+			"x-priority": 5,
+		},
+	}
+	appConfig.ConsumerConfig = consConf
 	return appConfig, nil
 }
