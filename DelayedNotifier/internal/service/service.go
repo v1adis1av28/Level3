@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -20,6 +21,7 @@ type NotificationService struct {
 	Producer  *rabbitmq.Channel
 	Publisher *rabbitmq.Publisher
 	Conn      *rabbitmq.Connection
+	Mutex     *sync.Mutex
 }
 
 func NewNotificationService(db *dbpg.DB) *NotificationService {
@@ -58,6 +60,7 @@ func NewNotificationService(db *dbpg.DB) *NotificationService {
 		Producer:  ch,
 		Publisher: publisher,
 		Conn:      conn,
+		Mutex:     &sync.Mutex{},
 	}
 }
 
@@ -96,7 +99,7 @@ func (ns *NotificationService) CreateNotification(notification *models.Notificat
 
 	_, err = ns.DB.ExecContext(
 		context.Background(),
-		"INSERT INTO NOTIFICATIONS (TEXT, STATUS, SENDTIME, USERID) VALUES($1, $2, $3, $4)",
+		"INSERT INTO NOTIFICATIONS (TEXT, STATUS, SENDTIME, USERID) VALUES($1, $2, $3, $4);",
 		notification.Text,
 		CREATED_STATUS,
 		parsedTime,
@@ -136,7 +139,9 @@ func (ns *NotificationService) CreateNotification(notification *models.Notificat
 
 func (ns *NotificationService) GetNotification(id int) (*models.NotificationDB, error) {
 	var notification models.NotificationDB
-	err := ns.DB.QueryRowContext(context.Background(), "SELECT N.ID, N.TEXT, N.STATUS, N.SENDTIME, N.USERID FROM NOTIFICATIONS AS N WHERE ID = $1", id).Scan(&notification.ID, &notification.Text, &notification.Status, &notification.TimeToSend, &notification.UserId)
+	ns.Mutex.Lock()
+	err := ns.DB.QueryRowContext(context.Background(), "SELECT N.ID, N.TEXT, N.STATUS, N.SENDTIME, N.USERID FROM NOTIFICATIONS AS N WHERE ID = $1;", id).Scan(&notification.ID, &notification.Text, &notification.Status, &notification.TimeToSend, &notification.UserId)
+	ns.Mutex.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("error while searching notifications")
 	}
@@ -145,12 +150,22 @@ func (ns *NotificationService) GetNotification(id int) (*models.NotificationDB, 
 
 func (ns *NotificationService) IsNotificationExist(id int) error {
 	var exist bool
-	err := ns.DB.QueryRowContext(context.Background(), "SELECT EXISTS(SELECT N.ID, N.TEXT, N.STATUS, N.SENDTIME, N.USERID FROM NOTIFICATIONS AS N WHERE ID = $1)", id).Scan(&exist)
+	err := ns.DB.QueryRowContext(context.Background(), "SELECT EXISTS(SELECT N.ID, N.TEXT, N.STATUS, N.SENDTIME, N.USERID FROM NOTIFICATIONS AS N WHERE ID = $1);", id).Scan(&exist)
 	if err != nil {
 		return err
 	}
 	if !exist {
 		return fmt.Errorf("notification with this id doesn`t exist")
+	}
+	return nil
+}
+
+func (ns *NotificationService) DeleteNotification(id int) error {
+	ns.Mutex.Lock()
+	_, err := ns.DB.ExecContext(context.Background(), "DELETE FROM NOTIFICATIONS WHERE ID = $1;", id)
+	ns.Mutex.Unlock()
+	if err != nil {
+		return err
 	}
 	return nil
 }

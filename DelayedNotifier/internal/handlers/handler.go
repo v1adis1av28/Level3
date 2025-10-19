@@ -62,5 +62,22 @@ func (h *Handler) CreateNotificationHandler(c *ginext.Context) {
 }
 
 func (h *Handler) DeleteNotificationHandler(c *ginext.Context) {
+	strId := c.Param("id")
+	id, err := strconv.Atoi(strId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ginext.H{"error": "error on requesting params"})
+		return
+	}
+	err = h.ns.IsNotificationExist(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ginext.H{"error": err.Error()})
+		return
+	}
+	err = h.ns.DeleteNotification(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ginext.H{"error": err.Error()})
+		return
+	}
 
+	c.JSON(http.StatusOK, ginext.H{"result": "notification was succesfully deleted"})
 }
