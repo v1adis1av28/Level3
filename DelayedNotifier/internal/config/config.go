@@ -46,8 +46,8 @@ func NewAppConfig() (*Config, error) {
 	appConfig.DBConfig.Slaves = append(appConfig.DBConfig.Slaves, appConfig.DBConfig.DB)
 
 	consConf := &rabbitmq.ConsumerConfig{
-		Queue:     "notifications",
-		Consumer:  "notification-processor",
+		Queue:     "notifications_queue",
+		Consumer:  "notification-worker",
 		AutoAck:   false,
 		Exclusive: false,
 		NoLocal:   false,

@@ -54,7 +54,7 @@ func (h *Handler) CreateNotificationHandler(c *ginext.Context) {
 
 	err = h.ns.CreateNotification(&notification)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, ginext.H{"error": "error on creating notification"})
+		c.JSON(http.StatusBadRequest, ginext.H{"error": err.Error()})
 		return
 	}
 
