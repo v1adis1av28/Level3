@@ -47,7 +47,7 @@ func (ns *NotificationService) ProcessMessage(messageBody []byte) error {
 		if timeUntilSend < delay {
 			delay = timeUntilSend
 		}
-		return ns.requeueWithDelay(&msg, delay)
+		return ns.RequeueWithDelay(&msg, delay)
 	}
 
 	zlog.Logger.Info().
@@ -57,7 +57,7 @@ func (ns *NotificationService) ProcessMessage(messageBody []byte) error {
 		Time("now", now).
 		Msg("message succesfully sent")
 
-	err = ns.sendNotification(&msg)
+	err = ns.SendNotification(&msg)
 	if err != nil {
 		zlog.Logger.Warn().
 			Int("id", msg.NotificationID).
@@ -76,7 +76,7 @@ func (ns *NotificationService) ProcessMessage(messageBody []byte) error {
 	return ns.markAsSent(msg.NotificationID)
 }
 
-func (ns *NotificationService) sendNotification(msg *models.NotificationMessage) error {
+func (ns *NotificationService) SendNotification(msg *models.NotificationMessage) error {
 	if time.Now().Unix()%5 == 0 {
 		return fmt.Errorf("временная ошибка отправки")
 	}
@@ -90,7 +90,7 @@ func (ns *NotificationService) sendNotification(msg *models.NotificationMessage)
 	return nil
 }
 
-func (ns *NotificationService) getRetryDelay(attempt int) time.Duration {
+func (ns *NotificationService) GetRetryDelay(attempt int) time.Duration {
 	delay := time.Duration(math.Pow(2, float64(attempt-1))) * 30 * time.Second
 	if delay > 10*time.Minute {
 		delay = 10 * time.Minute
@@ -99,7 +99,7 @@ func (ns *NotificationService) getRetryDelay(attempt int) time.Duration {
 }
 
 func (ns *NotificationService) scheduleRetry(msg *models.NotificationMessage) error {
-	retryDelay := ns.getRetryDelay(msg.Attempt)
+	retryDelay := ns.GetRetryDelay(msg.Attempt)
 
 	_, err := ns.DB.ExecContext(
 		context.Background(),
@@ -131,7 +131,7 @@ func (ns *NotificationService) scheduleRetry(msg *models.NotificationMessage) er
 	)
 }
 
-func (ns *NotificationService) requeueWithDelay(msg *models.NotificationMessage, delay time.Duration) error {
+func (ns *NotificationService) RequeueWithDelay(msg *models.NotificationMessage, delay time.Duration) error {
 	messageBody, err := json.Marshal(msg)
 	if err != nil {
 		return err
