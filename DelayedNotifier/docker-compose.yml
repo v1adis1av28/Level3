@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: notifications
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      TZ: Europe/Moscow
     ports:
       - "5432:5432"
     volumes:
@@ -26,6 +27,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+      TZ: Europe/Moscow
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/mnesia
     healthcheck:
@@ -44,6 +46,7 @@ services:
     environment:
       - DB_MASTER_DSN=postgres://postgres:postgres@db:5432/notifications?sslmode=disable
       - DB_SLAVE_DSNS=postgres://postgres:postgres@db:5432/notifications?sslmode=disable
+      - TZ=Europe/Moscow
     depends_on:
       db:
         condition: service_healthy

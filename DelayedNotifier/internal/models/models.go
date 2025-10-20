@@ -23,7 +23,6 @@ type NotificationDB struct {
 	NextRetry  time.Time `json:"nextRetry"`
 }
 
-// NotificationMessage для RabbitMQ
 type NotificationMessage struct {
 	NotificationID int       `json:"notificationId"`
 	UserID         int       `json:"userId"`

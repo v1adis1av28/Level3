@@ -2,7 +2,10 @@ module github.com/v1adis1av28/level3/DelayedNotifier
 
 go 1.25.1
 
-require github.com/wb-go/wbf v0.0.7
+require (
+	github.com/rabbitmq/amqp091-go v1.10.0
+	github.com/wb-go/wbf v0.0.7
+)
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect
@@ -28,7 +31,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
-	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rs/zerolog v1.30.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect

@@ -36,28 +36,29 @@ func main() {
 		fmt.Errorf("eror on creating db %w", err)
 		os.Exit(1)
 	}
+
 	notificationService := service.NewNotificationService(db)
-	defer notificationService.Producer.Close()
+	defer notificationService.Close()
+
 	notificationHandler := handlers.NewHandler(notificationService)
 	app := app.NewApp(db, config, notificationHandler)
 	msgConsumer := rabbitmq.NewConsumer(notificationService.Producer, config.ConsumerConfig)
+	processor := consumer.NewNotificationProcessor(notificationService)
 
 	go func() {
 		app.MustStart()
 	}()
-	processor := &consumer.NotificationProcessor{}
 
 	go func() {
 		consumer.ConsumeWithShutdown(msgConsumer, processor)
 	}()
+
+	zlog.Logger.Info().Msg("service started")
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 	<-stop
 
 	app.Stop()
-	zlog.Logger.Debug().Msg("Server gracefully stoped")
-	//Обработчик хендлеров
-	//Сервисы хендлеров для отправки уведовлений(продюсер)
-	//Отдельный сервис, который принимает и обрабатывает сообщения из rbmq
+	zlog.Logger.Debug().Msg("Server gracefully stopped")
 }

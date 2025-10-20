@@ -11,6 +11,7 @@ import (
 
 	"github.com/v1adis1av28/level3/DelayedNotifier/internal/service"
 	"github.com/wb-go/wbf/rabbitmq"
+	"github.com/wb-go/wbf/zlog"
 )
 
 type NotificationProcessor struct {
@@ -46,7 +47,6 @@ func ConsumeWithShutdown(consumer *rabbitmq.Consumer, processor *NotificationPro
 	msgChan := make(chan []byte, 100)
 	consumeErrChan := make(chan error, 1)
 
-	// Запускаем потребитель
 	go func() {
 		log.Println("Starting RabbitMQ consumer...")
 		if err := consumer.Consume(msgChan); err != nil {
@@ -57,7 +57,6 @@ func ConsumeWithShutdown(consumer *rabbitmq.Consumer, processor *NotificationPro
 		close(consumeErrChan)
 	}()
 
-	// Запускаем обработчик
 	processErrChan := make(chan error, 1)
 	go func() {
 		log.Println("Starting message processor...")
@@ -69,7 +68,6 @@ func ConsumeWithShutdown(consumer *rabbitmq.Consumer, processor *NotificationPro
 		close(processErrChan)
 	}()
 
-	// Ожидаем сигналы завершения
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -91,11 +89,9 @@ func ConsumeWithShutdown(consumer *rabbitmq.Consumer, processor *NotificationPro
 		cancel()
 	}
 
-	// Graceful shutdown
 	time.Sleep(1 * time.Second)
 	close(msgChan)
 
-	// Ждем завершения горутин
 	<-consumeErrChan
 	<-processErrChan
 
@@ -118,15 +114,13 @@ func processMessages(ctx context.Context, msgs <-chan []byte, processor *Notific
 			}
 
 			if err := processor.ProcessMessage(jsn); err != nil {
-				log.Printf("Error processing message: %v", err)
-				// Продолжаем обработку следующих сообщений
+				zlog.Logger.Error().Err(err)
 				continue
 			}
 		}
 	}
 }
 
-// Старая функция для обратной совместимости
 func Consume(consumer *rabbitmq.Consumer, service *service.NotificationService) {
 	processor := NewNotificationProcessor(service)
 	ConsumeWithShutdown(consumer, processor)
