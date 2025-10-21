@@ -1,0 +1,5 @@
+server:
+  addr: "localhost"
+  port: ":8080"
+db:
+  masterDB: "postgres://postgres:postgres@db:5432/shortener?sslmode=disable"
