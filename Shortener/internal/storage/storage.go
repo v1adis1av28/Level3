@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -62,4 +64,34 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 	}
 
 	return &Storage{DB: db}, nil
+}
+
+// GetURL(alias string) (string, error)
+// 	ShortenURL(url, alias string) error
+
+func (s *Storage) GetURL(alias string) (string, error) {
+	stmt, err := s.DB.Master.Prepare("Select U.URL from URL as U where alias = ?")
+	if err != nil {
+		return "", fmt.Errorf("error while getting url! error : %v", err)
+	}
+	var result string
+	err = stmt.QueryRow(alias).Scan(&result)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("no url using this alias")
+		}
+
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (s *Storage) ShortenURL(url, alias string) error {
+	_, err := s.DB.Master.Exec("INSERT INTO URL (url, alias) values($1,$2);", url, alias)
+	if err != nil {
+		//todo обработать ошибку на констраинты
+		return fmt.Errorf("error on prepare statemen inserting short url")
+	}
+	return nil
 }
