@@ -1,6 +1,7 @@
 package shortener
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/v1adis1av28/level3/shortener/internal/utils"
@@ -20,9 +21,24 @@ type Request struct {
 }
 
 // GET
-// func RedirectShortUrl(c *ginext.Context, storage URLHandler) ginext.HandlerFunc {
+func RedirectShortUrl(c *ginext.Context, storage URLHandler) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		alias := c.Param("short_url")
+		fmt.Println(alias)
+		if len(alias) < 1 {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": "alias url can`t be empty"})
+			return
+		}
+		redireсtUrl, err := storage.GetURL(alias)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": err.Error()})
+			return
+		}
 
-// }
+		c.Redirect(http.StatusTemporaryRedirect, redireсtUrl)
+		c.JSON(http.StatusOK, ginext.H{"result": "succesfully redirect"})
+	}
+}
 
 // POST
 func ShortenURL(c *ginext.Context, storage URLHandler) ginext.HandlerFunc {
@@ -36,6 +52,8 @@ func ShortenURL(c *ginext.Context, storage URLHandler) ginext.HandlerFunc {
 		if req.Alias == "" { //если пустое название от alias мы должны его сгенериорвать
 			req.Alias = utils.GenerateAlias(ALIAS_STANDART_SIZE)
 		}
+
+		//todo добавить валидацию url
 		err = storage.ShortenURL(req.URL, req.Alias)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, ginext.H{"error": "error on shorting url" + err.Error()})

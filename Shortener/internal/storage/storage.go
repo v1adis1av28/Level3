@@ -70,7 +70,7 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 // 	ShortenURL(url, alias string) error
 
 func (s *Storage) GetURL(alias string) (string, error) {
-	stmt, err := s.DB.Master.Prepare("Select U.URL from URL as U where alias = ?")
+	stmt, err := s.DB.Master.Prepare("Select U.URL from URL as U where alias = $1")
 	if err != nil {
 		return "", fmt.Errorf("error while getting url! error : %v", err)
 	}
