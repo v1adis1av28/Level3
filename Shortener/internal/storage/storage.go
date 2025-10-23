@@ -114,12 +114,34 @@ func (s *Storage) UpdateStats(alias, UA string) error {
 
 func (s *Storage) GetAnalytic(alias string) (*analytic.AnalyticResponse, error) {
 	result := &analytic.AnalyticResponse{}
-	//currentdayGroup ID SERIAL PRIMARY KEY,
-	// ALIAS VARCHAR(128),
-	// USER_AGENT VARCHAR(255),
-	// REQUEST_TIME TIMESTAMP,
 	s.Mutex.Lock()
 	defer s.Mutex.Unlock()
+	_ = s.DB.Master.QueryRow("SELECT COUNT(*) FROM ANALYTIC WHERE ALIAS = $1;", alias).Scan(&result.SummaryRedirectCount)
+	cuurentDayArray, err := s.getAnalyticLastDay(alias)
+	if err != nil {
+		return nil, err
+	}
+	result.CurrentDayGroup = cuurentDayArray
+
+	lastMonthArray, err := s.getAnalyticLastMonth(alias)
+	if err != nil {
+		return nil, err
+	}
+
+	result.LastMonthGroup = lastMonthArray
+
+	uaGroup, err := s.getUAGroup(alias)
+	if err != nil {
+		return nil, err
+	}
+	result.UserAgentGroup = uaGroup
+
+	fmt.Println(result)
+	return result, nil
+}
+
+func (s *Storage) getAnalyticLastDay(alias string) ([]analytic.AnalyticUnit, error) {
+	result := []analytic.AnalyticUnit{}
 	stmt, err := s.DB.Master.Prepare(`SELECT A.ALIAS, A.USER_AGENT, A.REQUEST_TIME FROM
 	 ANALYTIC AS A WHERE A.ALIAS = $1 AND REQUEST_TIME >= NOW() - INTERVAL '1 day';`)
 	if err != nil {
@@ -134,16 +156,19 @@ func (s *Storage) GetAnalytic(alias string) (*analytic.AnalyticResponse, error) 
 		if err := rows.Scan(&unit.Alias, &unit.UA, &unit.RequestTime); err != nil {
 			return nil, fmt.Errorf("error while scanning currrent day rows error:%v", err)
 		}
-		result.CurrentDayGroup = append(result.CurrentDayGroup, unit)
+		result = append(result, unit)
 	}
+	return result, nil
+}
 
-	// LastMonthGroup
-	stmt, err = s.DB.Master.Prepare(`SELECT A.ALIAS, A.USER_AGENT, A.REQUEST_TIME FROM
+func (s *Storage) getAnalyticLastMonth(alias string) ([]analytic.AnalyticUnit, error) {
+	lastMonth := []analytic.AnalyticUnit{}
+	stmt, err := s.DB.Master.Prepare(`SELECT A.ALIAS, A.USER_AGENT, A.REQUEST_TIME FROM
 	 ANALYTIC AS A WHERE A.ALIAS = $1 AND REQUEST_TIME >= NOW() - INTERVAL '1 month';`)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching analytic for alias: %s, error: %v", alias, err)
 	}
-	rows, err = stmt.Query(alias)
+	rows, err := stmt.Query(alias)
 	if err != nil {
 		return nil, err
 	}
@@ -152,17 +177,22 @@ func (s *Storage) GetAnalytic(alias string) (*analytic.AnalyticResponse, error) 
 		if err := rows.Scan(&unit.Alias, &unit.UA, &unit.RequestTime); err != nil {
 			return nil, fmt.Errorf("error while scanning last month rows error:%v", err)
 		}
-		result.LastMonthGroup = append(result.LastMonthGroup, unit)
+		lastMonth = append(lastMonth, unit)
 	}
-	//UAGroup
-	stmt, err = s.DB.Master.Prepare(`SELECT A.USER_AGENT,A.ALIAS,COUNT(*) as REDIRECT_COUNT,
+
+	return lastMonth, nil
+}
+
+func (s *Storage) getUAGroup(alias string) ([]analytic.UAAnaliticUnit, error) {
+	group := []analytic.UAAnaliticUnit{}
+	stmt, err := s.DB.Master.Prepare(`SELECT A.USER_AGENT,A.ALIAS,COUNT(*) as REDIRECT_COUNT,
     STRING_AGG(TO_CHAR(A.REQUEST_TIME, 'YYYY-MM-DD HH24:MI:SS'), '|' ORDER BY A.REQUEST_TIME DESC) as REQUEST_TIMES
 	FROM ANALYTIC AS A 	WHERE A.ALIAS = $1 GROUP BY A.USER_AGENT, A.ALIAS
 	ORDER BY REDIRECT_COUNT DESC;`)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching analytic for alias: %s, error: %v", alias, err)
 	}
-	rows, err = stmt.Query(alias)
+	rows, err := stmt.Query(alias)
 	if err != nil {
 		return nil, err
 	}
@@ -184,9 +214,8 @@ func (s *Storage) GetAnalytic(alias string) (*analytic.AnalyticResponse, error) 
 			}
 		}
 
-		result.UserAgentGroup = append(result.UserAgentGroup, unit)
+		group = append(group, unit)
 	}
-	//todo декомпозировать функции
-	fmt.Println(result.UserAgentGroup)
-	return result, nil
+
+	return group, nil
 }
