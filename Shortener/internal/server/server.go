@@ -31,7 +31,6 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 		c.Next()
 	})
 
-	// serverAdres := serverConfig.Addres + serverConfig.Port
 	server.HttpServer = &http.Server{
 		Addr:    serverConfig.Port,
 		Handler: server.Router,

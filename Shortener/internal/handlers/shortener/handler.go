@@ -13,6 +13,7 @@ const ALIAS_STANDART_SIZE = 6
 type URLHandler interface {
 	GetURL(alias string) (string, error)
 	ShortenURL(url, alias string) error
+	UpdateStats(alias, UA string) error
 }
 
 type Request struct {
@@ -29,12 +30,22 @@ func RedirectShortUrl(c *ginext.Context, storage URLHandler) ginext.HandlerFunc 
 			c.JSON(http.StatusBadRequest, ginext.H{"error": "alias url can`t be empty"})
 			return
 		}
+
 		redireсtUrl, err := storage.GetURL(alias)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, ginext.H{"error": err.Error()})
 			return
 		}
-
+		UA := c.Request.UserAgent()
+		if len(UA) < 1 {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": "user-agent can`t be empty"})
+			return
+		}
+		err = storage.UpdateStats(alias, UA)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, ginext.H{"error": err.Error()})
+			return
+		}
 		c.Redirect(http.StatusTemporaryRedirect, redireсtUrl)
 		c.JSON(http.StatusOK, ginext.H{"result": "succesfully redirect"})
 	}
@@ -56,7 +67,7 @@ func ShortenURL(c *ginext.Context, storage URLHandler) ginext.HandlerFunc {
 		//todo добавить валидацию url
 		err = storage.ShortenURL(req.URL, req.Alias)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, ginext.H{"error": "error on shorting url" + err.Error()})
+			c.JSON(http.StatusInternalServerError, ginext.H{"error": err.Error()})
 			return
 		}
 

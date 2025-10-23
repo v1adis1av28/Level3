@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/v1adis1av28/level3/shortener/internal/config"
 	"github.com/wb-go/wbf/dbpg"
 )
@@ -66,9 +67,6 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 	return &Storage{DB: db}, nil
 }
 
-// GetURL(alias string) (string, error)
-// 	ShortenURL(url, alias string) error
-
 func (s *Storage) GetURL(alias string) (string, error) {
 	stmt, err := s.DB.Master.Prepare("Select U.URL from URL as U where alias = $1")
 	if err != nil {
@@ -90,8 +88,21 @@ func (s *Storage) GetURL(alias string) (string, error) {
 func (s *Storage) ShortenURL(url, alias string) error {
 	_, err := s.DB.Master.Exec("INSERT INTO URL (url, alias) values($1,$2);", url, alias)
 	if err != nil {
-		//todo обработать ошибку на констраинты
-		return fmt.Errorf("error on prepare statemen inserting short url")
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" { //unique constraint error handler
+				return fmt.Errorf("this alias already present")
+			}
+		}
+		return fmt.Errorf("error on prepare statemen inserting short url, err %v", err)
+	}
+	return nil
+}
+
+func (s *Storage) UpdateStats(alias, UA string) error {
+	_, err := s.DB.Master.Exec("INSERT INTO ANALYTIC (ALIAS,USER_AGENT,REQUEST_TIME) VALUES($1,$2,$3);", alias, UA, time.Now())
+	if err != nil {
+		return fmt.Errorf("error on updating analytic")
 	}
 	return nil
 }
