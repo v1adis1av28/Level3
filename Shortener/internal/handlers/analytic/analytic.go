@@ -13,13 +13,20 @@ type AnalyticResponse struct {
 	SummaryRedirectCount int
 	CurrentDayGroup      []AnalyticUnit
 	LastMonthGroup       []AnalyticUnit
-	UserAgentGroup       []AnalyticUnit
+	UserAgentGroup       []UAAnaliticUnit
 }
 
 type AnalyticUnit struct {
 	Alias       string
 	UA          string
 	RequestTime time.Time
+}
+
+type UAAnaliticUnit struct {
+	Alias         string
+	UA            string
+	RequestTimes  []time.Time
+	RedirectCount int
 }
 
 type AnalyticHandler interface {

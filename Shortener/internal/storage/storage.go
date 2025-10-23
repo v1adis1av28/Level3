@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -136,12 +137,56 @@ func (s *Storage) GetAnalytic(alias string) (*analytic.AnalyticResponse, error) 
 		result.CurrentDayGroup = append(result.CurrentDayGroup, unit)
 	}
 
-	fmt.Println(len(result.CurrentDayGroup))
-	fmt.Println(result)
-
 	// LastMonthGroup
-
+	stmt, err = s.DB.Master.Prepare(`SELECT A.ALIAS, A.USER_AGENT, A.REQUEST_TIME FROM
+	 ANALYTIC AS A WHERE A.ALIAS = $1 AND REQUEST_TIME >= NOW() - INTERVAL '1 month';`)
+	if err != nil {
+		return nil, fmt.Errorf("error while fetching analytic for alias: %s, error: %v", alias, err)
+	}
+	rows, err = stmt.Query(alias)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var unit analytic.AnalyticUnit
+		if err := rows.Scan(&unit.Alias, &unit.UA, &unit.RequestTime); err != nil {
+			return nil, fmt.Errorf("error while scanning last month rows error:%v", err)
+		}
+		result.LastMonthGroup = append(result.LastMonthGroup, unit)
+	}
 	//UAGroup
+	stmt, err = s.DB.Master.Prepare(`SELECT A.USER_AGENT,A.ALIAS,COUNT(*) as REDIRECT_COUNT,
+    STRING_AGG(TO_CHAR(A.REQUEST_TIME, 'YYYY-MM-DD HH24:MI:SS'), '|' ORDER BY A.REQUEST_TIME DESC) as REQUEST_TIMES
+	FROM ANALYTIC AS A 	WHERE A.ALIAS = $1 GROUP BY A.USER_AGENT, A.ALIAS
+	ORDER BY REDIRECT_COUNT DESC;`)
+	if err != nil {
+		return nil, fmt.Errorf("error while fetching analytic for alias: %s, error: %v", alias, err)
+	}
+	rows, err = stmt.Query(alias)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var unit analytic.UAAnaliticUnit
+		var timesStr string
 
+		if err := rows.Scan(&unit.UA, &unit.Alias, &unit.RedirectCount, &timesStr); err != nil {
+			return nil, fmt.Errorf("error while scanning last month rows error:%v", err)
+		}
+
+		if timesStr != "" {
+			timeStrs := strings.Split(timesStr, "|")
+			for _, ts := range timeStrs {
+				parsedTime, err := time.Parse("2006-01-02 15:04:05", ts)
+				if err == nil {
+					unit.RequestTimes = append(unit.RequestTimes, parsedTime)
+				}
+			}
+		}
+
+		result.UserAgentGroup = append(result.UserAgentGroup, unit)
+	}
+	//todo декомпозировать функции
+	fmt.Println(result.UserAgentGroup)
 	return result, nil
 }
