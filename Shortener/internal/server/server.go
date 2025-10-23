@@ -45,5 +45,5 @@ func (s *Server) setupRoutes() {
 	c := &ginext.Context{}
 	s.Router.GET("/s/:short_url", shortener.RedirectShortUrl(c, s.Storage))
 	s.Router.POST("/shorten", shortener.ShortenURL(c, s.Storage))
-	s.Router.GET("/analytics/:short_url", analytic.GetAnalytic)
+	s.Router.GET("/analytics/:short_url", analytic.GetAnalytic(c, s.Storage))
 }

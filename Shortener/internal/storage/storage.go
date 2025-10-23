@@ -6,15 +6,19 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/lib/pq"
 	"github.com/v1adis1av28/level3/shortener/internal/config"
+	"github.com/v1adis1av28/level3/shortener/internal/handlers/analytic"
+
 	"github.com/wb-go/wbf/dbpg"
 )
 
 type Storage struct {
-	DB *dbpg.DB
+	DB    *dbpg.DB
+	Mutex *sync.Mutex
 }
 
 func New(dbConf *config.DBConfig) (*Storage, error) {
@@ -64,7 +68,7 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 		return nil, fmt.Errorf("error on exec %v", err)
 	}
 
-	return &Storage{DB: db}, nil
+	return &Storage{DB: db, Mutex: &sync.Mutex{}}, nil
 }
 
 func (s *Storage) GetURL(alias string) (string, error) {
@@ -105,4 +109,39 @@ func (s *Storage) UpdateStats(alias, UA string) error {
 		return fmt.Errorf("error on updating analytic")
 	}
 	return nil
+}
+
+func (s *Storage) GetAnalytic(alias string) (*analytic.AnalyticResponse, error) {
+	result := &analytic.AnalyticResponse{}
+	//currentdayGroup ID SERIAL PRIMARY KEY,
+	// ALIAS VARCHAR(128),
+	// USER_AGENT VARCHAR(255),
+	// REQUEST_TIME TIMESTAMP,
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
+	stmt, err := s.DB.Master.Prepare(`SELECT A.ALIAS, A.USER_AGENT, A.REQUEST_TIME FROM
+	 ANALYTIC AS A WHERE A.ALIAS = $1 AND REQUEST_TIME >= NOW() - INTERVAL '1 day';`)
+	if err != nil {
+		return nil, fmt.Errorf("error while fetching analytic for alias: %s, error: %v", alias, err)
+	}
+	rows, err := stmt.Query(alias)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var unit analytic.AnalyticUnit
+		if err := rows.Scan(&unit.Alias, &unit.UA, &unit.RequestTime); err != nil {
+			return nil, fmt.Errorf("error while scanning currrent day rows error:%v", err)
+		}
+		result.CurrentDayGroup = append(result.CurrentDayGroup, unit)
+	}
+
+	fmt.Println(len(result.CurrentDayGroup))
+	fmt.Println(result)
+
+	// LastMonthGroup
+
+	//UAGroup
+
+	return result, nil
 }
