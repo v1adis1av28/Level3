@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-
+	//todo add middleware
 	config, err := config.New("./config/local.yml")
 	if err != nil {
 		log.Fatal("Error on reading config err %v", err)

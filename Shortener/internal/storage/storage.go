@@ -35,11 +35,11 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 	}
 
 	stmt, err := db.Master.Prepare(`
-		CREATE TABLE IF NOT EXISTS URL(
-			ID SERIAL PRIMARY KEY,
-			URL VARCHAR(255) NOT NULL,
-			ALIAS VARCHAR(128) UNIQUE
-		);
+			CREATE TABLE IF NOT EXISTS URL(
+				ID SERIAL PRIMARY KEY,
+				URL VARCHAR(255) NOT NULL,
+				ALIAS VARCHAR(128) UNIQUE
+			);
 `)
 	if err != nil {
 		log.Fatal("error on initializing url tables, err: %v", err)
