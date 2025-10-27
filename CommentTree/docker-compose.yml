@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:15
+    container_name: comments-db
+    environment:
+      POSTGRES_DB: comments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_MASTER_DSN=postgres://postgres:postgres@db:5432/comments?sslmode=disable
+      - DB_SLAVE_DSNS=postgres://postgres:postgres@db:5432/comments?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres_data:

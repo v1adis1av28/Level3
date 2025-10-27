@@ -1,0 +1,5 @@
+server:
+  addr: "http://localhost"
+  port: ":8080"
+db:
+  masterDB: "postgres://postgres:postgres@db:5432/comments?sslmode=disable"
