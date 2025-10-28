@@ -3,13 +3,17 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/v1adis1av28/level3/CommentTree/internal/config"
 	"github.com/v1adis1av28/level3/CommentTree/internal/server"
 	"github.com/v1adis1av28/level3/CommentTree/internal/storage"
+	"github.com/wb-go/wbf/zlog"
 )
 
 func main() {
+	zlog.InitConsole()
 	config, err := config.New("./config/local.yml")
 	if err != nil {
 		log.Fatal("Error on reading config err %v", err)
@@ -23,6 +27,15 @@ func main() {
 	}
 
 	server := server.New(&config.Server, storage)
-	server.HttpServer.ListenAndServe()
 
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		err := server.HttpServer.ListenAndServe()
+		if err != nil {
+			log.Fatal("error on serving http server")
+		}
+	}()
+	<-done
 }

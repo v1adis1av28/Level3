@@ -5,6 +5,7 @@ import (
 
 	"github.com/v1adis1av28/level3/CommentTree/internal/config"
 	"github.com/v1adis1av28/level3/CommentTree/internal/handlers"
+	"github.com/v1adis1av28/level3/CommentTree/internal/middleware"
 	"github.com/v1adis1av28/level3/CommentTree/internal/storage"
 	"github.com/wb-go/wbf/ginext"
 )
@@ -16,7 +17,9 @@ type Server struct {
 }
 
 func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
-	server := &Server{Router: ginext.New("")}
+	server := &Server{Router: ginext.New(""), Storage: storage}
+
+	server.Router.Use(middleware.LoggingMiddleware())
 	server.Router.Use(func(c *ginext.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
@@ -40,9 +43,6 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 	return server
 }
 
-// – POST /comments — создание комментария (с указанием родительского);
-// – GET /comments?parent={id} — получение комментария и всех вложенных;
-// – DELETE /comments/{id} — удаление комментария и всех вложенных под ним.
 func (s *Server) setupRoutes() {
 	c := &ginext.Context{}
 	s.Router.GET("/comments", handlers.GetComments(c, s.Storage))

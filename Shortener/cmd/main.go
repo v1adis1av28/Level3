@@ -9,10 +9,12 @@ import (
 	"github.com/v1adis1av28/level3/shortener/internal/config"
 	"github.com/v1adis1av28/level3/shortener/internal/server"
 	"github.com/v1adis1av28/level3/shortener/internal/storage"
+	"github.com/wb-go/wbf/zlog"
 )
 
 func main() {
-	//todo add middleware
+	zlog.InitConsole()
+	zlog.SetLevel("debug")
 	config, err := config.New("./config/local.yml")
 	if err != nil {
 		log.Fatal("Error on reading config err %v", err)

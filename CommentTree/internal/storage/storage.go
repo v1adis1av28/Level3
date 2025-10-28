@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/v1adis1av28/level3/CommentTree/internal/config"
+	"github.com/v1adis1av28/level3/CommentTree/internal/models"
 	"github.com/wb-go/wbf/dbpg"
+	"github.com/wb-go/wbf/zlog"
 )
 
 type Storage struct {
@@ -31,7 +33,7 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 	stmt, err := db.Master.Prepare(`
 			CREATE TABLE IF NOT EXISTS COMMENTS(
 				ID SERIAL PRIMARY KEY,
-				PARRENT_ID INT BY DEFAULT 0,
+				PARRENT_ID INT DEFAULT 0,
 				TEXT VARCHAR(256),
 				USERNAME VARCHAR(128) NOT NULL
 			);
@@ -46,4 +48,17 @@ func New(dbConf *config.DBConfig) (*Storage, error) {
 	}
 
 	return &Storage{DB: db, Mutex: &sync.Mutex{}}, nil
+}
+
+func (s *Storage) CreateComment(req *models.CreateRequest) error {
+	stmt, err := s.DB.Master.Prepare("INSERT INTO COMMENTS (PARRENT_ID,TEXT,USERNAME) VALUES($1,$2,$3);")
+	if err != nil {
+		return fmt.Errorf("error on processing prepare statment %v", err)
+	}
+	_, err = stmt.Exec(req.ParrentId, req.Text, req.Username)
+	if err != nil {
+		return fmt.Errorf("error on executing insert query %v", err)
+	}
+	zlog.Logger.Info().Msg("Create comment succesfully")
+	return nil
 }
