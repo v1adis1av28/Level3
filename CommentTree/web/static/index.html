@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>CommentTree</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .comment { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .children { margin-left: 30px; }
+        .actions { margin-top: 5px; }
+        button { margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <h1>CommentTree</h1>
+    
+    <div>
+        <h3>Добавить комментарий</h3>
+        <form id="commentForm">
+            <input type="hidden" id="parentId" value="0">
+            <div>
+                <input type="text" id="username" placeholder="Имя" required>
+            </div>
+            <div>
+                <textarea id="text" placeholder="Текст комментария" required></textarea>
+            </div>
+            <button type="submit">Отправить</button>
+            <button type="button" id="cancelReply" style="display:none;">Отмена</button>
+        </form>
+    </div>
+
+    <div>
+        <h3>Поиск</h3>
+        <input type="text" id="search" placeholder="Поиск...">
+        <button onclick="searchComments()">Искать</button>
+        <button onclick="clearSearch()">Очистить</button>
+    </div>
+
+    <div id="comments"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

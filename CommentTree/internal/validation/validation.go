@@ -14,7 +14,7 @@ func IsRequestValid(req *models.CreateRequest) (bool, error) {
 	if len(req.Username) < 1 {
 		return false, fmt.Errorf("username can`t be empty")
 	}
-	if req.ParrentId < 0 {
+	if req.ParentId < 0 {
 		return false, fmt.Errorf("parrent id can`t be negative")
 	}
 	return true, nil
