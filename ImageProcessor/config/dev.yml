@@ -4,4 +4,4 @@ kafka:
   addr : "localhost:9092"
   topic : "images"
 server:	
-  listenAddr : ":8000"
+  listenAddr : ":8080"

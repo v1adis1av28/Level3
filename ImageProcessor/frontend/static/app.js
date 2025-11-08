@@ -1,5 +1,4 @@
-javascript
-const API = 'http://localhost:8000';
+const API = 'http://localhost:8080';
 
 async function uploadFile(ev) {
   ev.preventDefault();

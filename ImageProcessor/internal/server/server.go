@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -49,11 +50,12 @@ func (s *Server) setupRoutes() {
 	s.Router.POST("/upload", handlers.UploadPicture(c, s.Storage))
 	s.Router.DELETE("/image/:id", handlers.DeletePicture(c, s.Storage))
 
-	staticPath := "./frontend"
+	staticPath := "./frontend/static"
 	if _, err := os.Stat(staticPath); os.IsNotExist(err) {
-		staticPath = "/app/web/static"
+		staticPath = "/app/frontend/static"
 	}
-
+	fmt.Println("Path")
+	fmt.Println(staticPath)
 	s.Router.Static("/static", staticPath)
 
 	s.Router.GET("/", func(c *ginext.Context) {
