@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ImageProcessor Go — demo</title>
+  <style>
+    body{ font-family: system-ui, Arial; margin: 18px }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:12px }
+    .card{ border:1px solid #ddd; padding:8px; border-radius:6px }
+    img{ max-width:100%; height:140px; object-fit:cover; background:#f3f3f3 }
+    .meta{ display:flex; justify-content:space-between; align-items:center; margin-top:6px }
+    button{ padding:6px 8px; margin-left:6px }
+  </style>
+</head>
+<body>
+  <h1>ImageProcessor (Go) — demo</h1>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="file" accept="image/*" />
+    <button>Upload</button>
+  </form>
+  <p><button id="refresh">Refresh list</button></p>
+  <div id="list" class="grid"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

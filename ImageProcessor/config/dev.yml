@@ -1,0 +1,7 @@
+db:
+  path : "postgres://postgres:postgres@db:5432/images?sslmode=disable"
+kafka:
+  addr : "localhost:9092"
+  topic : "images"
+server:	
+  listenAddr : ":8000"
