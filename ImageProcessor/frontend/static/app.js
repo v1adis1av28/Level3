@@ -43,7 +43,6 @@ async function refresh() {
       const j = await r.json();
       if (j.status === 'done') {
         const v = j.versions;
-        // prefer watermarked, then resized, then original
         let url = null;
         for (const fname in v) {
           if (fname.includes('watermark') || fname.includes('watermarked')) {

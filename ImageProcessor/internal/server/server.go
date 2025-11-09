@@ -7,6 +7,7 @@ import (
 
 	"github.com/v1adis1av28/level3/ImageProcessor/internal/config"
 	"github.com/v1adis1av28/level3/ImageProcessor/internal/handlers"
+	"github.com/v1adis1av28/level3/ImageProcessor/internal/kafka"
 	"github.com/v1adis1av28/level3/ImageProcessor/internal/storage"
 	"github.com/wb-go/wbf/ginext"
 )
@@ -15,12 +16,18 @@ type Server struct {
 	Router     *ginext.Engine
 	HttpServer *http.Server
 	Storage    *storage.Storage
+	Producer   *kafka.Producer
+	UploadDir  string
 }
 
-func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
-	server := &Server{Router: ginext.New(""), Storage: storage}
+func New(serverConfig *config.ServerConfig, storage *storage.Storage, producer *kafka.Producer, uploadDir string) *Server {
+	server := &Server{
+		Router:    ginext.New(""),
+		Storage:   storage,
+		Producer:  producer,
+		UploadDir: uploadDir,
+	}
 
-	// CORS middleware - исправленная версия
 	server.Router.Use(func(c *ginext.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
@@ -35,7 +42,7 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 	})
 
 	server.HttpServer = &http.Server{
-		Addr:    serverConfig.Addr,
+		Addr:    serverConfig.ListenAddr,
 		Handler: server.Router,
 	}
 
@@ -45,17 +52,18 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 }
 
 func (s *Server) setupRoutes() {
-	c := &ginext.Context{}
-	s.Router.GET("/image/:id", handlers.GetPicture(c, s.Storage))
-	s.Router.POST("/upload", handlers.UploadPicture(c, s.Storage))
-	s.Router.DELETE("/image/:id", handlers.DeletePicture(c, s.Storage))
+	imageHandlers := handlers.NewImageHandlers(s.Storage, s.Producer, s.UploadDir)
+
+	s.Router.GET("/image/:id", imageHandlers.GetImage)
+	s.Router.POST("/upload", imageHandlers.UploadPicture)
+	s.Router.DELETE("/image/:id", imageHandlers.DeleteImage)
+	s.Router.GET("/files/*path", imageHandlers.ServeImage)
 
 	staticPath := "./frontend/static"
 	if _, err := os.Stat(staticPath); os.IsNotExist(err) {
 		staticPath = "/app/frontend/static"
 	}
-	fmt.Println("Path")
-	fmt.Println(staticPath)
+	fmt.Printf("Serving static files from: %s\n", staticPath)
 	s.Router.Static("/static", staticPath)
 
 	s.Router.GET("/", func(c *ginext.Context) {

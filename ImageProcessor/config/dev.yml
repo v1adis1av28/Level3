@@ -1,7 +1,8 @@
 db:
-  path : "postgres://postgres:postgres@db:5432/images?sslmode=disable"
+  path: "postgres://postgres:postgres@db:5432/images?sslmode=disable"
 kafka:
-  addr : "localhost:9092"
-  topic : "images"
-server:	
-  listenAddr : ":8080"
+  addr: "kafka:9092" 
+  topic: "images"
+server:
+  listenAddr: ":8080"
+upload_dir: "/app/uploads"

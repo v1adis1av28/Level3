@@ -7,21 +7,23 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig
-	Kafka  KafkaConfig
-	DB     DBConfig
+	Server    ServerConfig `yaml:"server"`
+	Kafka     KafkaConfig  `yaml:"kafka"`
+	DB        DBConfig     `yaml:"db"`
+	UploadDir string       `yaml:"upload_dir"`
 }
 
 type ServerConfig struct {
-	Addr string
+	ListenAddr string `yaml:"listenAddr"`
 }
 
 type KafkaConfig struct {
-	Addr  string
-	Topic string
+	Addr  string `yaml:"addr"`
+	Topic string `yaml:"topic"`
 }
 
 type DBConfig struct {
+	Path        string `yaml:"path"`
 	MasterDbUrl string
 	SlaverUrl   []string
 }
@@ -33,11 +35,17 @@ func New(confPath string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading config file: %v", err)
 	}
-	conf.Server.Addr = cfg.GetString("server.ListenAddr")
-	conf.Kafka.Addr = cfg.GetString("kafka.addr")
-	conf.Kafka.Topic = cfg.GetString("kafka.topic")
-	conf.DB.MasterDbUrl = cfg.GetString("db.path")
-	conf.DB.SlaverUrl = append(conf.DB.SlaverUrl, conf.DB.MasterDbUrl)
+	err = cfg.Unmarshal(conf)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling config: %v", err)
+	}
+
+	conf.DB.MasterDbUrl = conf.DB.Path
+	conf.DB.SlaverUrl = []string{conf.DB.Path}
+
+	if conf.UploadDir == "" {
+		conf.UploadDir = "./uploads"
+	}
 
 	return conf, nil
 }
