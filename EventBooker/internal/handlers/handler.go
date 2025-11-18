@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/v1adis1av28/level3/eventbooker/internal/models"
@@ -12,6 +13,7 @@ import (
 
 type EventHandler interface {
 	CreateEvent(event *models.Event) error
+	BookSeat(eventId int) error
 }
 
 type ErrorResponse struct {
@@ -43,5 +45,24 @@ func CreateEvent(storage *storage.Storage) ginext.HandlerFunc {
 		}
 		event.CreatedAt = time.Now()
 		c.JSON(http.StatusOK, ginext.H{"result": "succesfully created", "event": event})
+	}
+}
+
+// POST /events/{id}/book — бронирование места;
+func BookSeat(storage *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		eventId, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: err.Error()}})
+			return
+		}
+
+		err = storage.BookSeat(eventId)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 500, Description: err.Error()}})
+			return
+		}
+
+		c.JSON(http.StatusOK, ginext.H{"result": "succesfully booked a seat", "eventId": eventId})
 	}
 }

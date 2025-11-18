@@ -42,4 +42,5 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 
 func (s *Server) setupRoutes() {
 	s.Router.POST("/events", handlers.CreateEvent(s.Storage))
+	s.Router.POST("/events/:id/book", handlers.BookSeat(s.Storage))
 }
