@@ -18,6 +18,7 @@ type EventHandler interface {
 	CreateEvent(event *models.Event) error
 	BookSeat(eventId int) error
 	ConfirmBook(bp *models.BookPayload) error
+	GetEventById(eventId int) (*models.Event, error)
 }
 
 type ErrorResponse struct {
@@ -117,5 +118,30 @@ func ConfirmBook(s *storage.Storage) ginext.HandlerFunc {
 		}
 		//todo добавить обработку чтобы из очереди убиралась этот бук
 		c.JSON(http.StatusOK, ginext.H{"result": "Book succesfully confirmed"})
+	}
+}
+
+// GET /events/{id} — получение информации о мероприятии и свободных местах.
+func GetEvent(s *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		eventId, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: err.Error()}})
+			return
+		}
+
+		event, err := s.GetEventById(eventId)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: "event not found"}})
+				return
+			} else {
+				c.JSON(http.StatusInternalServerError, ginext.H{"error": ErrorResponse{StatusCode: 500, Description: err.Error()}})
+				return
+			}
+		}
+
+		c.JSON(http.StatusOK, ginext.H{"result": "succesfully",
+			"event": event})
 	}
 }

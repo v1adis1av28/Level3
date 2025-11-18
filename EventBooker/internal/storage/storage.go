@@ -143,3 +143,18 @@ func (s *Storage) IsBookExist(bookId int) error {
 	}
 	return nil
 }
+
+func (s *Storage) GetEventById(eventId int) (*models.Event, error) {
+	var Event models.Event
+	query := "SELECT E.NAME, E.DESCRIPTION, E.CAPACITY,E.CREATED_AT, E.CONFIRMATION_NEED FROM EVENTS AS E WHERE ID = $1;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	err = stmt.QueryRow(eventId).Scan(&Event.Name, &Event.Description, &Event.Capacity, &Event.CreatedAt, &Event.ConfirmationNeed)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Event, nil
+}
