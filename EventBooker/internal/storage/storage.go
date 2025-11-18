@@ -29,6 +29,7 @@ func NewStorage(dbConf *config.DBConfig) (*Storage, error) {
 	CREATE TABLE IF NOT EXISTS EVENTS(
 	ID SERIAL PRIMARY KEY,
 	CAPACITY INTEGER NOT NULL,
+	CONFIRMATION_NEED BOOLEAN NOT NULL DEFAULT TRUE,
 	NAME VARCHAR(255) NOT NULL,
 	DESCRIPTION VARCHAR(512) NOT NULL,
 	CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`)
@@ -62,46 +63,83 @@ func NewStorage(dbConf *config.DBConfig) (*Storage, error) {
 }
 
 func (s *Storage) CreateEvent(event *models.Event) error {
-	_, err := s.DB.Master.Exec("INSERT INTO EVENTS (NAME,DESCRIPTION,CAPACITY,CREATED_AT) values($1,$2,$3,$4);", event.Name, event.Description, event.Capacity, time.Now())
+	_, err := s.DB.Master.Exec("INSERT INTO EVENTS (NAME,DESCRIPTION,CONFIRMATION_NEED,CAPACITY,CREATED_AT) values($1,$2,$3,$4,$5);", event.Name, event.Description, event.ConfirmationNeed, event.Capacity, time.Now())
 	if err != nil {
 		return fmt.Errorf("error on prepare statemen inserting event: %v", err)
 	}
 	return nil
 }
 
-func (s *Storage) BookSeat(eventId int) error {
+func (s *Storage) BookSeat(eventId int) (bool, error) {
 	tx, err := s.DB.Master.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %v", err)
+		return false, fmt.Errorf("failed to begin transaction: %v", err)
 	}
 	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
 	}()
-	var exists bool
-	query := "SELECT 1 FROM events WHERE id = $1;"
-	err = s.DB.Master.QueryRow(query, eventId).Scan(&exists)
+	confirmation, err := s.IsConfirmationNeed(eventId)
 	if err != nil {
-
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("event not found")
-		}
-		return fmt.Errorf("error on serching event: %w", err)
+		return false, err
 	}
-
 	stmt, err := s.DB.Master.Prepare("INSERT INTO BOOK(CREATED_AT,CONFIRMED,EVENT_ID) VALUES($1,$2,$3);")
 	if err != nil {
-		return fmt.Errorf("error on prepare statment inserting booking err: %v", err)
+		return false, fmt.Errorf("error on prepare statment inserting booking err: %v", err)
 	}
 	_, err = stmt.Exec(time.Now(), false, eventId)
 	if err != nil {
-		return fmt.Errorf("error on executing booking request, err: %v", err)
+		return false, fmt.Errorf("error on executing booking request, err: %v", err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %v", err)
+		return false, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+	return confirmation, nil
+}
+
+func (s *Storage) IsConfirmationNeed(eventId int) (bool, error) {
+	var confirmationNeed bool
+	query := "SELECT e.CONFIRMATION_NEED FROM events as e WHERE id = $1;"
+	err := s.DB.Master.QueryRow(query, eventId).Scan(&confirmationNeed)
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return false, err
+		}
+		return false, fmt.Errorf("error on serching event: %w", err)
+	}
+	return confirmationNeed, nil
+}
+
+func (s *Storage) ConfirmBook(bookPayload *models.BookPayload) error {
+	err := s.IsBookExist(bookPayload.BookId)
+	if err != nil {
+		return err
+	}
+	stmt, err := s.DB.Master.Prepare("UPDATE BOOK SET CONFIRMED = TRUE where EVENT_ID = $1 AND ID = $2;")
+	if err != nil {
+		return fmt.Errorf("Error on prepare statment confirming book, err: %v", err)
+	}
+	_, err = stmt.Exec(bookPayload.EventId, bookPayload.BookId)
+	if err != nil {
+		return fmt.Errorf("error on executing confirming book with id %v", bookPayload.BookId)
+	}
+	zlog.Logger.Debug().Msgf("Confirm book with id %v", bookPayload.BookId)
+	return nil
+}
+
+func (s *Storage) IsBookExist(bookId int) error {
+	var exist bool
+	query := "SELECT 1 FROM book WHERE id = $1;"
+	err := s.DB.Master.QueryRow(query, bookId).Scan(&exist)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return err
+		}
+		return fmt.Errorf("error on serching book: %w", err)
 	}
 	return nil
 }

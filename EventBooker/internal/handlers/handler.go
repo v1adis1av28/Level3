@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,6 +17,7 @@ import (
 type EventHandler interface {
 	CreateEvent(event *models.Event) error
 	BookSeat(eventId int) error
+	ConfirmBook(bp *models.BookPayload) error
 }
 
 type ErrorResponse struct {
@@ -57,12 +61,61 @@ func BookSeat(storage *storage.Storage) ginext.HandlerFunc {
 			return
 		}
 
-		err = storage.BookSeat(eventId)
+		confirmationNeed, err := storage.BookSeat(eventId)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: "event not found"}})
+				return
+			}
 			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 500, Description: err.Error()}})
 			return
 		}
-
+		_ = confirmationNeed
+		if confirmationNeed {
+			//TODO добавлять в очередь для фонового воркера что нужно подтвердить бронь
+			fmt.Println("for this event you need confirmation")
+		}
 		c.JSON(http.StatusOK, ginext.H{"result": "succesfully booked a seat", "eventId": eventId})
+	}
+}
+
+// POST /events/{id}/confirm — оплата брони (если мероприятие требует этого);
+func ConfirmBook(s *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		var payload models.BookPayload
+		eventId, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: err.Error()}})
+			return
+		}
+		err = c.ShouldBindJSON(&payload)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: err.Error()}})
+			return
+		}
+		payload.EventId = eventId
+		confirmation, err := s.IsConfirmationNeed(eventId)
+		if !confirmation {
+			if errors.Is(err, sql.ErrNoRows) {
+				c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: "event not found"}})
+				return
+			} else {
+				c.JSON(http.StatusOK, ginext.H{"info": "This event doens`t need book confirmation"})
+				return
+			}
+		}
+		err = s.ConfirmBook(&payload)
+		if err != nil {
+
+			if errors.Is(err, sql.ErrNoRows) {
+				c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: "book not found"}})
+				return
+			} else {
+				c.JSON(http.StatusInternalServerError, ginext.H{"error": ErrorResponse{StatusCode: 500, Description: err.Error()}})
+				return
+			}
+		}
+		//todo добавить обработку чтобы из очереди убиралась этот бук
+		c.JSON(http.StatusOK, ginext.H{"result": "Book succesfully confirmed"})
 	}
 }
