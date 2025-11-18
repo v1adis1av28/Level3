@@ -14,6 +14,6 @@ WORKDIR /root/
 
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
-
+COPY internal/web/static ./internal/web/static
 EXPOSE 8080
 CMD ["./main"]

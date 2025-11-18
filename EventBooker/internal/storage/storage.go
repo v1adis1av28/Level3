@@ -70,34 +70,41 @@ func (s *Storage) CreateEvent(event *models.Event) error {
 	return nil
 }
 
-func (s *Storage) BookSeat(eventId int) (bool, error) {
+func (s *Storage) BookSeat(eventId int) (bool, int, error) {
 	tx, err := s.DB.Master.Begin()
 	if err != nil {
-		return false, fmt.Errorf("failed to begin transaction: %v", err)
+		return false, 0, fmt.Errorf("failed to begin transaction: %v", err)
 	}
 	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
 	}()
+
 	confirmation, err := s.IsConfirmationNeed(eventId)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
-	stmt, err := s.DB.Master.Prepare("INSERT INTO BOOK(CREATED_AT,CONFIRMED,EVENT_ID) VALUES($1,$2,$3);")
-	if err != nil {
-		return false, fmt.Errorf("error on prepare statment inserting booking err: %v", err)
-	}
-	_, err = stmt.Exec(time.Now(), false, eventId)
-	if err != nil {
-		return false, fmt.Errorf("error on executing booking request, err: %v", err)
-	}
+	stmt := `INSERT INTO BOOK (CREATED_AT, CONFIRMED, EVENT_ID) 
+             VALUES ($1, $2, $3) 
+             RETURNING ID`
+	var bookID int
 
+	if confirmation {
+		err = tx.QueryRow(stmt, time.Now(), false, eventId).Scan(&bookID)
+	} else {
+		err = tx.QueryRow(stmt, time.Now(), true, eventId).Scan(&bookID)
+
+	}
+	if err != nil {
+		return false, 0, fmt.Errorf("error inserting booking: %v", err)
+	}
 	err = tx.Commit()
 	if err != nil {
-		return false, fmt.Errorf("failed to commit transaction: %v", err)
+		return false, 0, fmt.Errorf("failed to commit transaction: %v", err)
 	}
-	return confirmation, nil
+
+	return confirmation, bookID, nil
 }
 
 func (s *Storage) IsConfirmationNeed(eventId int) (bool, error) {

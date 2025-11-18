@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -62,7 +61,7 @@ func BookSeat(storage *storage.Storage) ginext.HandlerFunc {
 			return
 		}
 
-		confirmationNeed, err := storage.BookSeat(eventId)
+		confirmationNeed, bookID, err := storage.BookSeat(eventId)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 400, Description: "event not found"}})
@@ -71,12 +70,13 @@ func BookSeat(storage *storage.Storage) ginext.HandlerFunc {
 			c.JSON(http.StatusBadRequest, ginext.H{"error": ErrorResponse{StatusCode: 500, Description: err.Error()}})
 			return
 		}
-		_ = confirmationNeed
-		if confirmationNeed {
-			//TODO добавлять в очередь для фонового воркера что нужно подтвердить бронь
-			fmt.Println("for this event you need confirmation")
-		}
-		c.JSON(http.StatusOK, ginext.H{"result": "succesfully booked a seat", "eventId": eventId})
+
+		c.JSON(http.StatusOK, ginext.H{
+			"result":            "succesfully booked a seat",
+			"eventId":           eventId,
+			"bookId":            bookID,
+			"confirmation_need": confirmationNeed,
+		})
 	}
 }
 

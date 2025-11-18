@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User - Event Booker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .event { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        button { margin: 5px; padding: 10px; }
+        .info { margin-top: 10px; padding: 10px; background: #eef; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>User Panel</h1>
+
+    <div>
+        <label>Event ID: <input type="number" id="eventId"></label>
+        <button onclick="getEvent()">Get Event</button>
+    </div>
+
+    <div id="eventInfo"></div>
+
+    <script>
+        const API_BASE = "http://localhost:8080";
+
+        async function getEvent() {
+            const id = document.getElementById("eventId").value;
+            if (!id) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/events/${id}`);
+                const data = await res.json();
+
+                if (data.result) {
+                    const e = data.event;
+
+                    document.getElementById("eventInfo").innerHTML = `
+                        <div class="event">
+                            <h2>${e.name}</h2>
+                            <p>${e.description}</p>
+                            <p>Capacity: ${e.capacity}</p>
+                            <p>Confirmation Needed: ${e.confirmation_need ? "Yes" : "No"}</p>
+                            <p>Created: ${new Date(e.CreatedAt).toLocaleString()}</p>
+                            <button onclick="bookSeat(${id})">Book Seat</button>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById("eventInfo").innerHTML =
+                        `<p style="color:red;">Error: ${data.error?.Description}</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function bookSeat(id) {
+            try {
+                const res = await fetch(`${API_BASE}/events/${id}/book`, {
+                    method: "POST"
+                });
+                const data = await res.json();
+
+                if (!data.result) {
+                    alert(`Error: ${data.error?.Description}`);
+                    return;
+                }
+
+                const bookId = data.bookId;
+                const needConfirm = data.confirmation_need;
+
+                let html = `
+                    <div class="info">
+                        <p><strong>Seat booked!</strong></p>
+                        <p>Booking ID: <b>${bookId}</b></p>
+                `;
+
+                if (needConfirm) {
+                    html += `
+                        <button onclick="confirmBooking(${id}, ${bookId})">
+                            Confirm Booking
+                        </button>
+                    `;
+                } else {
+                    html += `<p>No confirmation required for this event.</p>`;
+                }
+
+                html += `</div>`;
+
+                document.getElementById("eventInfo").innerHTML += html;
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function confirmBooking(eventId, bookId) {
+            try {
+                const res = await fetch(`${API_BASE}/events/${eventId}/confirm`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ book_id: bookId })
+                });
+
+                const data = await res.json();
+
+                if (data.result) {
+                    alert("Booking confirmed!");
+                } else {
+                    alert("Error: " + (data.error?.Description || "Unknown"));
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
