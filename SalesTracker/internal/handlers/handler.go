@@ -10,12 +10,13 @@ type StorageInterface interface {
 	CreateItem(item *models.Item) error
 	GetItems() ([]models.Item, error)
 	GetItemByID(id int) (*models.Item, error)
+	UpdateItemByID(id int, item *models.Item) error
+	DeleteItemByID(id int) error
 	// Other storage methods can be defined here
 }
 
 func CreateItem(storage *storage.Storage) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
-		// Handler logic to create an item
 		var reqPayload models.Item
 		err := c.ShouldBindJSON(&reqPayload)
 		if err != nil {
@@ -41,7 +42,6 @@ func CreateItem(storage *storage.Storage) ginext.HandlerFunc {
 
 func GetItems(storage *storage.Storage) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
-		// Handler logic to get all items
 		arr, err := storage.GetItems()
 		if err != nil {
 			c.JSON(500, ginext.H{"error": "Failed to retrieve items"})
@@ -74,12 +74,44 @@ func GetItemByID(storage *storage.Storage) ginext.HandlerFunc {
 
 func UpdateItemByID(storage *storage.Storage) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
-		// Handler logic to update an item by ID
+		var updatePayload models.Item
+		if err := c.ShouldBindJSON(&updatePayload); err != nil {
+			c.JSON(400, ginext.H{"error": "Invalid request payload"})
+			return
+		}
+
+		var idParam struct {
+			ID int `uri:"id" binding:"required"`
+		}
+		if err := c.ShouldBindUri(&idParam); err != nil {
+			c.JSON(400, ginext.H{"error": "Invalid ID parameter"})
+			return
+		}
+		err := storage.UpdateItemByID(idParam.ID, &updatePayload)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, ginext.H{"message": "Item updated successfully"})
 	}
 }
 
 func DeleteItemByID(storage *storage.Storage) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
-		// Handler logic to delete an item by ID
+		var idParam struct {
+			ID int `uri:"id" binding:"required"`
+		}
+		if err := c.ShouldBindUri(&idParam); err != nil {
+			c.JSON(400, ginext.H{"error": "Invalid ID parameter"})
+			return
+		}
+
+		err := storage.DeleteItemByID(idParam.ID)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": "Failed to delete item, " + err.Error()})
+			return
+		}
+
+		c.JSON(200, ginext.H{"message": "Item deleted successfully"})
 	}
 }

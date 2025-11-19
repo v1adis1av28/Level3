@@ -112,3 +112,45 @@ func (s *Storage) GetItemByID(id int) (*models.Item, error) {
 
 	return &item, nil
 }
+
+func (s *Storage) UpdateItemByID(id int, item *models.Item) error {
+	query := "UPDATE SALES SET PRICE = $1, NAME = $2, TYPE = $3 WHERE ID = $4;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("error on preparing %v", err)
+	}
+	result, err := stmt.Exec(item.Price, item.Name, item.Type, id)
+	if err != nil {
+		return fmt.Errorf("error on exec %v", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error on getting rows affected %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no item found with ID %d to update", id)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteItemByID(id int) error {
+	query := "DELETE FROM SALES WHERE ID = $1;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("error on preparing %v", err)
+	}
+	result, err := stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("error on exec %v", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error on getting rows affected %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no item found with ID %d to delete", id)
+	}
+
+	return nil
+}
