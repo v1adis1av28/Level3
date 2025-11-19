@@ -8,6 +8,7 @@ import (
 
 type StorageInterface interface {
 	CreateItem(item *models.Item) error
+	GetItems() ([]models.Item, error)
 	// Other storage methods can be defined here
 }
 
@@ -40,6 +41,13 @@ func CreateItem(storage *storage.Storage) ginext.HandlerFunc {
 func GetItems(storage *storage.Storage) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
 		// Handler logic to get all items
+		arr, err := storage.GetItems()
+		if err != nil {
+			c.JSON(500, ginext.H{"error": "Failed to retrieve items"})
+			return
+		}
+
+		c.JSON(200, ginext.H{"items": arr})
 	}
 }
 

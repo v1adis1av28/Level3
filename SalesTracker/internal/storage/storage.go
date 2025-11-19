@@ -46,17 +46,48 @@ func NewStorage(dbConf *config.DBConfig) (*Storage, error) {
 
 func (s *Storage) CreateItem(item *models.Item) error {
 
-	query := `INSERT INTO SALES (PRICE, NAME, TYPE) VALUES ($1, $2, $3);`
+	query := `INSERT INTO SALES (PRICE, NAME, TYPE) VALUES ($1, $2, $3) RETURNING ID;`
 	stmt, err := s.DB.Master.Prepare(query)
 	if err != nil {
 		return fmt.Errorf("error preparing statement: %v", err)
 	}
-	_, err = stmt.Exec(item.Price, item.Name, item.Type)
+	var id int
+	err = stmt.QueryRow(item.Price, item.Name, item.Type).Scan(&id)
 	if err != nil {
 		return fmt.Errorf("error inserting item: %v", err)
 	}
 
-	zlog.Logger.Debug().Msgf("Item created with ID: %d", item.ID)
+	zlog.Logger.Debug().Msgf("Item created with ID: %d", id)
 
 	return nil
+}
+
+func (s *Storage) GetItems() ([]models.Item, error) {
+	arr := make([]models.Item, 0)
+
+	query := "SELECT S.NAME,S.PRICE,S.TYPE FROM SALES AS S;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error on preparing %v", err)
+	}
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, fmt.Errorf("error on querying %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.Item
+		err := rows.Scan(&item.Name, &item.Price, &item.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error on scanning %v", err)
+		}
+		arr = append(arr, item)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error on rows iteration %v", err)
+	}
+
+	return arr, nil
 }
