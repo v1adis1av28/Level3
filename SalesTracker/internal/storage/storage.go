@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/v1adis1av28/level3/SalesTracker/internal/config"
 	"github.com/v1adis1av28/level3/SalesTracker/internal/models"
@@ -47,13 +48,17 @@ func NewStorage(dbConf *config.DBConfig) (*Storage, error) {
 
 func (s *Storage) CreateItem(item *models.Item) error {
 
-	query := `INSERT INTO SALES (PRICE, NAME, TYPE) VALUES ($1, $2, $3) RETURNING ID;`
+	if item.Date.IsZero() {
+		item.Date = time.Now()
+	}
+
+	query := `INSERT INTO SALES (PRICE, NAME, TYPE,CREATED_AT) VALUES ($1, $2, $3, $4) RETURNING ID;`
 	stmt, err := s.DB.Master.Prepare(query)
 	if err != nil {
 		return fmt.Errorf("error preparing statement: %v", err)
 	}
 	var id int
-	err = stmt.QueryRow(item.Price, item.Name, item.Type).Scan(&id)
+	err = stmt.QueryRow(item.Price, item.Name, item.Type, item.Date).Scan(&id)
 	if err != nil {
 		return fmt.Errorf("error inserting item: %v", err)
 	}
@@ -66,7 +71,7 @@ func (s *Storage) CreateItem(item *models.Item) error {
 func (s *Storage) GetItems() ([]models.Item, error) {
 	arr := make([]models.Item, 0)
 
-	query := "SELECT S.NAME,S.PRICE,S.TYPE FROM SALES AS S;"
+	query := "SELECT S.NAME,S.PRICE,S.TYPE, S.CREATED_AT FROM SALES AS S;"
 	stmt, err := s.DB.Master.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("error on preparing %v", err)
@@ -79,7 +84,7 @@ func (s *Storage) GetItems() ([]models.Item, error) {
 
 	for rows.Next() {
 		var item models.Item
-		err := rows.Scan(&item.Name, &item.Price, &item.Type)
+		err := rows.Scan(&item.Name, &item.Price, &item.Type, &item.Date)
 		if err != nil {
 			return nil, fmt.Errorf("error on scanning %v", err)
 		}
@@ -154,3 +159,9 @@ func (s *Storage) DeleteItemByID(id int) error {
 
 	return nil
 }
+
+//  сумма (sum)
+// – среднее (avg)
+// – количество (count)
+// – медиана
+// – 90-й перцентиль
