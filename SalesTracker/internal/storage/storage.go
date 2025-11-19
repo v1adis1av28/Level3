@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/v1adis1av28/level3/SalesTracker/internal/config"
+	"github.com/v1adis1av28/level3/SalesTracker/internal/models"
 	"github.com/wb-go/wbf/dbpg"
 	"github.com/wb-go/wbf/zlog"
 )
@@ -41,4 +42,21 @@ func NewStorage(dbConf *config.DBConfig) (*Storage, error) {
 	zlog.Logger.Debug().Msg("Db succesfully created and table initializeed")
 
 	return &Storage{DB: db, Mutex: &sync.Mutex{}}, nil
+}
+
+func (s *Storage) CreateItem(item *models.Item) error {
+
+	query := `INSERT INTO SALES (PRICE, NAME, TYPE) VALUES ($1, $2, $3);`
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("error preparing statement: %v", err)
+	}
+	_, err = stmt.Exec(item.Price, item.Name, item.Type)
+	if err != nil {
+		return fmt.Errorf("error inserting item: %v", err)
+	}
+
+	zlog.Logger.Debug().Msgf("Item created with ID: %d", item.ID)
+
+	return nil
 }

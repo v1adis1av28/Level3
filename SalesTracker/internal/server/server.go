@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/v1adis1av28/level3/SalesTracker/internal/config"
+	"github.com/v1adis1av28/level3/SalesTracker/internal/handlers"
 	"github.com/v1adis1av28/level3/SalesTracker/internal/storage"
+
 	"github.com/wb-go/wbf/ginext"
 )
 
@@ -41,8 +43,14 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 
 func (s *Server) setupRoutes() {
 	// – POST /items;
+	s.Router.POST("/items", handlers.CreateItem(s.Storage))
 	// – GET /items;
+	s.Router.GET("/items", handlers.GetItems(s.Storage))
+	// – GET /items/{id};
+	s.Router.GET("/items/:id", handlers.GetItemByID(s.Storage))
 	// – PUT /items/{id};
+	s.Router.PUT("/items/:id", handlers.UpdateItemByID(s.Storage))
 	// – DELETE /items/{id}
+	s.Router.DELETE("/items/:id", handlers.DeleteItemByID(s.Storage))
 
 }

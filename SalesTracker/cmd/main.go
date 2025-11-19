@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/v1adis1av28/level3/SalesTracker/internal/config"
+	"github.com/v1adis1av28/level3/SalesTracker/internal/server"
 	"github.com/v1adis1av28/level3/SalesTracker/internal/storage"
 	"github.com/wb-go/wbf/zlog"
 )
@@ -21,10 +21,15 @@ func main() {
 		zlog.Logger.Err(err).Msg(err.Error())
 		os.Exit(1)
 	}
-	_ = db
 
-	_ = cfg
-	fmt.Println(cfg)
+	server := server.New(&cfg.Server, db)
+
+	go func() {
+		zlog.Logger.Info().Msgf("Starting server on %s", cfg.Server.ListenAddr)
+		if err := server.HttpServer.ListenAndServe(); err != nil {
+			zlog.Logger.Err(err).Msg("Server stopped with error")
+		}
+	}()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
