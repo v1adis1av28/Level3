@@ -9,6 +9,7 @@ import (
 type StorageInterface interface {
 	CreateItem(item *models.Item) error
 	GetItems() ([]models.Item, error)
+	GetItemByID(id int) (*models.Item, error)
 	// Other storage methods can be defined here
 }
 
@@ -53,7 +54,21 @@ func GetItems(storage *storage.Storage) ginext.HandlerFunc {
 
 func GetItemByID(storage *storage.Storage) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
-		// Handler logic to get an item by ID
+		var idParam struct {
+			ID int `uri:"id" binding:"required"`
+		}
+		if err := c.ShouldBindUri(&idParam); err != nil {
+			c.JSON(400, ginext.H{"error": "Invalid ID parameter"})
+			return
+		}
+
+		item, err := storage.GetItemByID(idParam.ID)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, ginext.H{"item": item})
 	}
 }
 

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -90,4 +91,24 @@ func (s *Storage) GetItems() ([]models.Item, error) {
 	}
 
 	return arr, nil
+}
+
+func (s *Storage) GetItemByID(id int) (*models.Item, error) {
+	query := "SELECT S.ID, S.NAME, S.PRICE, S.TYPE FROM SALES AS S WHERE S.ID = $1;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error on preparing %v", err)
+	}
+	row := stmt.QueryRow(id)
+
+	var item models.Item
+	err = row.Scan(&item.ID, &item.Name, &item.Price, &item.Type)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("item with ID %d not found", id)
+		}
+		return nil, fmt.Errorf("error on scanning %v", err)
+	}
+
+	return &item, nil
 }
