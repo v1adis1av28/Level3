@@ -53,4 +53,5 @@ func (s *Server) setupRoutes() {
 	// – DELETE /items/{id}
 	s.Router.DELETE("/items/:id", handlers.DeleteItemByID(s.Storage))
 
+	s.Router.GET("/analytics", handlers.GetAnalytics(s.Storage))
 }

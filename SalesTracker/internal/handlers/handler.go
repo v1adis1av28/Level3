@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/v1adis1av28/level3/SalesTracker/internal/models"
 	"github.com/v1adis1av28/level3/SalesTracker/internal/storage"
 	"github.com/wb-go/wbf/ginext"
@@ -12,7 +15,7 @@ type StorageInterface interface {
 	GetItemByID(id int) (*models.Item, error)
 	UpdateItemByID(id int, item *models.Item) error
 	DeleteItemByID(id int) error
-	// Other storage methods can be defined here
+	GetAnalytics(req *models.AnalyticsRequest) (*models.AnalyticsResponse, error)
 }
 
 func CreateItem(storage *storage.Storage) ginext.HandlerFunc {
@@ -114,4 +117,55 @@ func DeleteItemByID(storage *storage.Storage) ginext.HandlerFunc {
 
 		c.JSON(200, ginext.H{"message": "Item deleted successfully"})
 	}
+}
+
+func GetAnalytics(storage *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		req, err := parseAnalyticsParam(c)
+		if err != nil {
+			c.JSON(400, ginext.H{"error": "Invalid query parameters"})
+			return
+		}
+
+		data, err := storage.GetAnalytics(req)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": "Failed to retrieve analytics data, err: " + err.Error()})
+			return
+		}
+
+		c.JSON(200, ginext.H{"analytics": data})
+	}
+}
+
+func parseAnalyticsParam(c *ginext.Context) (*models.AnalyticsRequest, error) {
+	var req models.AnalyticsRequest
+	req.Type = c.Query("type")
+	if req.Type == "" {
+		return nil, fmt.Errorf("type parameter is required")
+	}
+	if dateStr := c.Query("date"); dateStr != "" {
+		if date, err := time.Parse("2006-01-02", dateStr); err == nil {
+			req.Date = &date
+		} else {
+			return &req, err
+		}
+	}
+
+	if fromStr := c.Query("from"); fromStr != "" {
+		if from, err := time.Parse("2006-01-02", fromStr); err == nil {
+			req.From = &from
+		} else {
+			return &req, err
+		}
+	}
+
+	if toStr := c.Query("to"); toStr != "" {
+		if to, err := time.Parse("2006-01-02", toStr); err == nil {
+			req.To = &to
+		} else {
+			return &req, err
+		}
+	}
+
+	return &req, nil
 }

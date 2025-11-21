@@ -160,8 +160,134 @@ func (s *Storage) DeleteItemByID(id int) error {
 	return nil
 }
 
-//  сумма (sum)
-// – среднее (avg)
-// – количество (count)
-// – медиана
-// – 90-й перцентиль
+func (s *Storage) GetAnalytics(req *models.AnalyticsRequest) (*models.AnalyticsResponse, error) {
+	exists, err := s.isTypeExist(req.Type)
+	if err != nil && !exists {
+		return nil, fmt.Errorf("type %s does not exist", req.Type)
+	}
+
+	var respone models.AnalyticsResponse
+	respone.Type = req.Type
+
+	var sum, count int
+	var avg, median, percentile90 float64 //,
+	query := "SELECT COALESCE(SUM(PRICE),0), COUNT(*), COALESCE(AVG(PRICE),0) FROM SALES WHERE TYPE = $1"
+	args := []interface{}{req.Type}
+	median, err = s.medianCount(req)
+	if err != nil {
+		return nil, fmt.Errorf("error on getting median %v", err)
+	}
+	percentile90, err = s.percentile90Count(req)
+	if err != nil {
+		return nil, fmt.Errorf("error on getting percentile90 %v", err)
+	}
+	if req.Date != nil {
+		query += " AND DATE(CREATED_AT) = $2"
+		args = append(args, req.Date.Format("2006-01-02"))
+	} else {
+		if req.From != nil {
+			query += " AND DATE(CREATED_AT) >= $2"
+			args = append(args, req.From.Format("2006-01-02"))
+		}
+		if req.To != nil {
+			paramIndex := len(args) + 1
+			query += fmt.Sprintf(" AND DATE(CREATED_AT) <= $%d", paramIndex)
+			args = append(args, req.To.Format("2006-01-02"))
+		}
+	}
+
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error on preparing %v", err)
+	}
+	err = stmt.QueryRow(args...).Scan(&sum, &count, &avg)
+	if err != nil {
+		return nil, fmt.Errorf("error on querying %v", err)
+	}
+	respone.Sum = sum
+	respone.Count = count
+	respone.Avg = avg
+	respone.Median = median
+	respone.Percentile90 = percentile90
+	return &respone, nil
+
+}
+
+func (s *Storage) isTypeExist(opType string) (bool, error) {
+	query := "SELECT type FROM SALES WHERE TYPE = $1;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return false, fmt.Errorf("error on preparing %v", err)
+	}
+	var typ string
+	err = stmt.QueryRow(opType).Scan(&typ)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, fmt.Errorf("type %s not found", opType)
+		}
+		return false, fmt.Errorf("error on querying %v", err)
+	}
+	return len(typ) == 0, nil
+}
+
+func (s *Storage) medianCount(req *models.AnalyticsRequest) (float64, error) {
+	var median float64
+	query := "SELECT percentile_cont(0.5) WITHIN GROUP(ORDER BY PRICE) FROM SALES WHERE TYPE = $1"
+	args := []interface{}{req.Type}
+
+	if req.Date != nil {
+		query += " AND DATE(CREATED_AT) = $2"
+		args = append(args, req.Date.Format("2006-01-02"))
+	} else {
+		if req.From != nil {
+			query += " AND DATE(CREATED_AT) >= $2"
+			args = append(args, req.From.Format("2006-01-02"))
+		}
+		if req.To != nil {
+			paramIndex := len(args) + 1
+			query += fmt.Sprintf(" AND DATE(CREATED_AT) <= $%d", paramIndex)
+			args = append(args, req.To.Format("2006-01-02"))
+		}
+	}
+
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return -1.0, fmt.Errorf("error on preparing %v", err)
+	}
+	err = stmt.QueryRow(args...).Scan(&median)
+	if err != nil {
+		return -1.0, fmt.Errorf("error on querying %v", err)
+	}
+	return median, nil
+}
+
+func (s *Storage) percentile90Count(req *models.AnalyticsRequest) (float64, error) {
+	var percentile90 float64
+	query := "SELECT percentile_cont(0.9) WITHIN GROUP(ORDER BY PRICE) FROM SALES WHERE TYPE = $1"
+	args := []interface{}{req.Type}
+
+	if req.Date != nil {
+		query += " AND DATE(CREATED_AT) = $2"
+		args = append(args, req.Date.Format("2006-01-02"))
+	} else {
+		if req.From != nil {
+			query += " AND DATE(CREATED_AT) >= $2"
+			args = append(args, req.From.Format("2006-01-02"))
+		}
+		if req.To != nil {
+			paramIndex := len(args) + 1
+			query += fmt.Sprintf(" AND DATE(CREATED_AT) <= $%d", paramIndex)
+			args = append(args, req.To.Format("2006-01-02"))
+		}
+	}
+
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		return -1.0, fmt.Errorf("error on preparing %v", err)
+	}
+	err = stmt.QueryRow(args...).Scan(&percentile90)
+	if err != nil {
+		return -1.0, fmt.Errorf("error on querying %v", err)
+	}
+	return percentile90, nil
+}
