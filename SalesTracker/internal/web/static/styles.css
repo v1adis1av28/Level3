@@ -1,0 +1,14 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+section {
+    margin-bottom: 25px;
+}
+table {
+    border-collapse: collapse;
+    padding: 5px;
+}
+td, th {
+    padding: 5px 10px;
+}

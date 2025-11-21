@@ -42,6 +42,8 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 }
 
 func (s *Server) setupRoutes() {
+	s.Router.Static("/static", "./internal/web/static")
+
 	// – POST /items;
 	s.Router.POST("/items", handlers.CreateItem(s.Storage))
 	// – GET /items;

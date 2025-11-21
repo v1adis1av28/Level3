@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Sales Tracker</title>
+</head>
+<body>
+<h1>Sales Tracker</h1>
+
+<!-- Create Item -->
+<section>
+    <h2>Добавить запись</h2>
+    <form id="createForm">
+        <label>Название: <input type="text" id="name" required></label><br><br>
+        <label>Тип: <input type="text" id="type" required></label><br><br>
+        <label>Цена: <input type="number" id="price" required></label><br><br>
+        <label>Дата: <input type="date" id="date"></label><br><br>
+        <button type="submit">Добавить</button>
+    </form>
+    <p id="createResult"></p>
+</section>
+
+<hr>
+
+<!-- Items list -->
+<section>
+    <h2>Все записи</h2>
+    <button onclick="loadItems()">Обновить список</button>
+    <table border="1" style="margin-top: 10px;">
+        <thead>
+        <tr>
+            <th>Название</th>
+            <th>Цена</th>
+            <th>Тип</th>
+            <th>Дата</th>
+        </tr>
+        </thead>
+        <tbody id="itemsTable"></tbody>
+    </table>
+</section>
+
+<hr>
+
+<!-- Analytics -->
+<section>
+    <h2>Аналитика</h2>
+    <form id="analyticsForm">
+        <label>Тип: <input type="text" id="aType" required></label><br><br>
+        <label>Дата (одно значение): <input type="date" id="aDate"></label><br><br>
+        <label>От: <input type="date" id="aFrom"></label><br><br>
+        <label>До: <input type="date" id="aTo"></label><br><br>
+        <button type="submit">Получить аналитику</button>
+    </form>
+
+    <div id="analyticsResult" style="margin-top: 10px;"></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
