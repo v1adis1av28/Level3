@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -80,7 +81,9 @@ func NewStorage(dbConf *config.DBConfig) (*Storage, error) {
 	}
 
 	zlog.Logger.Debug().Msg("Db succesfully created and table initializeed")
-
+	//TODO сделать триггер
+	// 	Создать триггеры на items, которые при каждом INSERT, UPDATE, DELETE будут записывать изменения в item_history.
+	// Пример: CREATE TRIGGER log_item_changes AFTER UPDATE ON items FOR EACH ROW EXECUTE FUNCTION log_item_change();
 	return &Storage{DB: db, Mutex: &sync.Mutex{}}, nil
 }
 
@@ -148,9 +151,25 @@ func (s *Storage) CreateItem(item *models.Item) error {
 	return nil
 }
 
-func (s *Storage) GetItem(itemId int) (*models.Item, error) {
-	//TODO implement me
-	return nil, nil
+func (s *Storage) GetItems() ([]models.Item, error) {
+	items := []models.Item{}
+	rows, err := s.DB.Master.Query("SELECT I.ID, I.NAME, I.DESCRIPTION, I.QUANTITY FROM ITEMS AS I;")
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("Items doesn`t exsts")
+		} else {
+			return nil, err
+		}
+	}
+	for rows.Next() {
+		var item models.Item
+		err := rows.Scan(&item.ID, &item.Name, &item.Description, &item.Quantity)
+		if err != nil {
+			return nil, fmt.Errorf("error while scanning items! err : %v", err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 func (s *Storage) UpdateItem(itemId int, updateReq *models.Item) error {

@@ -78,6 +78,22 @@ func CreateItem(s *storage.Storage) ginext.HandlerFunc {
 	}
 }
 
+func GetItems(s *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		items, err := s.GetItems()
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
+		if len(items) == 0 {
+			c.JSON(200, ginext.H{"info": "there is nothing in the ites"})
+			return
+		}
+		c.JSON(200, ginext.H{"items": items})
+	}
+}
+
 // todo мб перекинуть в отдельный пакет
 func generateToken(secret string, req *models.LoginRequest) (string, error) {
 	claims := jwt.MapClaims{

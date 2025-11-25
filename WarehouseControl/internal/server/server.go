@@ -46,4 +46,5 @@ func (s *Server) setupRoutes(jwtSecret string) {
 	s.Router.POST("/auth/login", handlers.Login(s.Storage, jwtSecret))
 	//Для остальных роутов нужно использовать мидлварь на авторизацию
 	s.Router.POST("/items", middleware.AuthMiddleware(jwtSecret), handlers.CreateItem(s.Storage))
+	s.Router.GET("/items", middleware.AuthMiddleware(jwtSecret), handlers.GetItems(s.Storage))
 }
