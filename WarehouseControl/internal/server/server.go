@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/config"
+	"github.com/v1adis1av28/Level3/WarehouseControl/internal/handlers"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/storage"
 	"github.com/wb-go/wbf/ginext"
 )
@@ -14,7 +15,7 @@ type Server struct {
 	Storage    *storage.Storage
 }
 
-func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
+func New(Config *config.Config, storage *storage.Storage) *Server {
 	server := &Server{Router: ginext.New(""), Storage: storage}
 
 	server.Router.Use(func(c *ginext.Context) {
@@ -31,15 +32,16 @@ func New(serverConfig *config.ServerConfig, storage *storage.Storage) *Server {
 	})
 
 	server.HttpServer = &http.Server{
-		Addr:    serverConfig.ListenAddr,
+		Addr:    Config.Server.ListenAddr,
 		Handler: server.Router,
 	}
 
-	server.setupRoutes()
+	server.setupRoutes(Config.JWTConfig.Secret)
 	return server
 }
 
-func (s *Server) setupRoutes() {
+func (s *Server) setupRoutes(jwtSecret string) {
 	//s.Router.Static("/static", "./internal/web/static")
-
+	s.Router.POST("/auth/login", handlers.Login(s.Storage, jwtSecret))
+	//Для остальных роутов нужно использовать мидлварь на авторизацию
 }

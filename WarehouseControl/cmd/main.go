@@ -25,7 +25,7 @@ func main() {
 		zlog.Logger.Err(err).Msg(err.Error())
 		os.Exit(1)
 	}
-	server := server.New(&cfg.Server, db)
+	server := server.New(cfg, db)
 
 	go func() {
 		zlog.Logger.Info().Msgf("Starting server on %s", cfg.Server.ListenAddr)

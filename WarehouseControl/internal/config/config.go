@@ -10,6 +10,11 @@ type Config struct {
 	Server    ServerConfig
 	DB        DBConfig
 	UploadDir string
+	JWTConfig JWTConfig
+}
+
+type JWTConfig struct {
+	Secret string
 }
 
 type ServerConfig struct {
@@ -36,6 +41,7 @@ func New(confPath string) (*Config, error) {
 	conf.Server.ListenAddr = cfg.GetString("app.port")
 	conf.DB.MasterDbUrl = cfg.GetString("db.url")
 	conf.DB.SlaverUrl = []string{conf.DB.MasterDbUrl}
+	conf.JWTConfig.Secret = cfg.GetString("jwt.secret")
 
 	return conf, nil
 }
