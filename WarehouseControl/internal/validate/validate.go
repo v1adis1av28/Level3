@@ -10,3 +10,10 @@ func IsValidLoginRequest(req *models.LoginRequest) bool {
 	}
 	return true
 }
+
+func IsValidItemRequest(item *models.Item) bool {
+	if item.Quantity < 0 || len(item.Name) < 1 || len(item.Description) < 1 {
+		return false
+	}
+	return true
+}

@@ -131,3 +131,34 @@ func (s *Storage) isUserExist(username string) (bool, error) {
 	}
 	return false, nil
 }
+
+func (s *Storage) CreateItem(item *models.Item) error {
+	stmt, err := s.DB.Master.Prepare("INSERT INTO ITEMS(QUANTITY, NAME, DESCRIPTION) VALUES($1,$2,$3);")
+	if err != nil {
+		zlog.Logger.Err(err)
+		return fmt.Errorf("error on prepare statment insert item, err: %v", err)
+	}
+	_, err = stmt.Exec(item.Quantity, item.Name, item.Description)
+	if err != nil {
+		zlog.Logger.Err(err).Msgf("error on executing insert operation item: %v", item)
+		return fmt.Errorf("error on execuring insert op, error: %v", err)
+	}
+
+	zlog.Logger.Info().Msgf("Succesfully insert new item, item: %v", item)
+	return nil
+}
+
+func (s *Storage) GetItem(itemId int) (*models.Item, error) {
+	//TODO implement me
+	return nil, nil
+}
+
+func (s *Storage) UpdateItem(itemId int, updateReq *models.Item) error {
+	//TODO implement me
+	return nil
+}
+
+func (s *Storage) DeleteItem(itemId int) error {
+	//TODO implement me
+	return nil
+}

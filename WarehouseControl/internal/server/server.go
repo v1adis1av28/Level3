@@ -5,6 +5,7 @@ import (
 
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/config"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/handlers"
+	"github.com/v1adis1av28/Level3/WarehouseControl/internal/middleware"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/storage"
 	"github.com/wb-go/wbf/ginext"
 )
@@ -44,4 +45,5 @@ func (s *Server) setupRoutes(jwtSecret string) {
 	//s.Router.Static("/static", "./internal/web/static")
 	s.Router.POST("/auth/login", handlers.Login(s.Storage, jwtSecret))
 	//Для остальных роутов нужно использовать мидлварь на авторизацию
+	s.Router.POST("/items", middleware.AuthMiddleware(jwtSecret), handlers.CreateItem(s.Storage))
 }

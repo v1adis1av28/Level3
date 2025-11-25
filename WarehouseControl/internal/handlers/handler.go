@@ -55,6 +55,29 @@ func Login(s *storage.Storage, secret string) ginext.HandlerFunc {
 	}
 }
 
+func CreateItem(s *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		var item models.Item
+		err := c.ShouldBindJSON(&item)
+		if err != nil {
+			c.JSON(400, ginext.H{"error": err.Error()})
+			return
+		}
+		if !validate.IsValidItemRequest(&item) {
+			c.JSON(400, ginext.H{"error": "invalid item request"})
+			return
+		}
+
+		err = s.CreateItem(&item)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(201, ginext.H{"result": "item succesfuly created", "item": item})
+	}
+}
+
 // todo мб перекинуть в отдельный пакет
 func generateToken(secret string, req *models.LoginRequest) (string, error) {
 	claims := jwt.MapClaims{
