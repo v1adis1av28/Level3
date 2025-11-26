@@ -12,10 +12,6 @@ import (
 	"github.com/wb-go/wbf/ginext"
 )
 
-// todo add this роли пользователей. Например: admin — полный доступ; manager — может смотреть и редактировать; viewer — только просмотр;
-type ControlHandler interface {
-}
-
 type AuthHandler interface {
 	LoginUser(req *models.LoginRequest) error
 }
@@ -50,11 +46,28 @@ func Login(s AuthHandler, secret string) ginext.HandlerFunc {
 		}
 
 		c.Writer.Header().Set("Authorization", "Bearer "+token)
-		//TODO добавить добавление jwt вместо того что сверху
 		c.JSON(201, ginext.H{"result": "user succesfuly sign in", "user": req})
 	}
 }
 
+func GetItemHistory(s *storage.Storage, secret string) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(400, ginext.H{"error": "invalid item id"})
+			return
+		}
+
+		history, err := s.GetItemHistory(id)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, ginext.H{"history": history})
+	}
+}
 func CreateItem(s *storage.Storage, secret string) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
 		payload, err := jwt.ExtractPayloadFromClaims(c.GetHeader("Authorization")[7:], secret)

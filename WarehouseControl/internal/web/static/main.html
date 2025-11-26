@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Складской учет</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Система учета товаров на складе</h1>
+
+        <!-- Форма входа -->
+        <div id="login-form">
+            <h2>Вход</h2>
+            <input type="text" id="username" placeholder="Имя пользователя" />
+            <select id="role">
+                <option value="admin">Admin</option>
+                <option value="manager">Manager</option>
+                <option value="viewer">Viewer</option>
+            </select>
+            <button onclick="login()">Войти</button>
+        </div>
+
+        <!-- Основной интерфейс -->
+        <div id="main-content" style="display: none;">
+            <h2>Привет, <span id="current-user"></span> (роль: <span id="current-role"></span>)</h2>
+            <button onclick="logout()">Выйти</button>
+
+            <!-- Форма добавления товара -->
+            <div id="add-item-form" style="display: none;">
+                <h3>Добавить товар</h3>
+                <input type="text" id="item-name" placeholder="Название" />
+                <input type="text" id="item-description" placeholder="Описание" />
+                <input type="number" id="item-quantity" placeholder="Количество" />
+                <button onclick="createItem()">Добавить</button>
+            </div>
+
+            <!-- Список товаров -->
+            <div id="items-list">
+                <h3>Список товаров</h3>
+                <table id="items-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Описание</th>
+                            <th>Количество</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-body"></tbody>
+                </table>
+            </div>
+
+            <!-- История изменений -->
+            <div id="history-section" style="display: none;">
+                <h3>История изменений</h3>
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Действие</th>
+                            <th>Старое значение</th>
+                            <th>Новое значение</th>
+                            <th>Кто изменил</th>
+                            <th>Когда</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/script.js"></script>
+</body>
+</html>

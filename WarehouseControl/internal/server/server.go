@@ -42,11 +42,14 @@ func New(Config *config.Config, storage *storage.Storage) *Server {
 }
 
 func (s *Server) setupRoutes(jwtSecret string) {
-	//s.Router.Static("/static", "./internal/web/static")
+	s.Router.Static("/static", "./internal/web/static")
+	s.Router.GET("/", func(c *ginext.Context) {
+		c.File("./internal/web/static/main.html")
+	})
 	s.Router.POST("/auth/login", handlers.Login(s.Storage, jwtSecret))
-	//Для остальных роутов нужно использовать мидлварь на авторизацию
 	s.Router.POST("/items", middleware.AuthMiddleware(jwtSecret), handlers.CreateItem(s.Storage, jwtSecret))
 	s.Router.GET("/items", middleware.AuthMiddleware(jwtSecret), handlers.GetItems(s.Storage))
 	s.Router.PUT("/items/:id", middleware.AuthMiddleware(jwtSecret), handlers.UpdateItem(s.Storage, jwtSecret))
 	s.Router.DELETE("/items/:id", middleware.AuthMiddleware(jwtSecret), handlers.DeleteItem(s.Storage, jwtSecret))
+	s.Router.GET("/items/:id/history", middleware.AuthMiddleware(jwtSecret), handlers.GetItemHistory(s.Storage, jwtSecret))
 }

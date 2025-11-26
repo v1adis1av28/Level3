@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/config"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/models"
@@ -356,4 +357,36 @@ func (s *Storage) isIdExist(id int) (bool, error) {
 		return false, fmt.Errorf("id not found")
 	}
 	return true, nil
+}
+
+type HistoryEntry struct {
+	Action    string    `json:"action"`
+	OldValues *int      `json:"old_values"`
+	NewValues *int      `json:"new_values"`
+	ChangedBy string    `json:"changed_by"`
+	ChangedAt time.Time `json:"changed_at"`
+}
+
+func (s *Storage) GetItemHistory(itemId int) ([]HistoryEntry, error) {
+	rows, err := s.DB.Master.Query(`
+        SELECT ACTION, OLD_VALUES, NEW_VALUES, CHANGED_BY, CHANGED_AT
+        FROM ITEM_HISTORY
+        WHERE ITEM_ID = $1
+        ORDER BY CHANGED_AT DESC
+    `, itemId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []HistoryEntry
+	for rows.Next() {
+		var entry HistoryEntry
+		err := rows.Scan(&entry.Action, &entry.OldValues, &entry.NewValues, &entry.ChangedBy, &entry.ChangedAt)
+		if err != nil {
+			return nil, err
+		}
+		history = append(history, entry)
+	}
+	return history, nil
 }
