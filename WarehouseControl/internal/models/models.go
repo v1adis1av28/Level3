@@ -6,7 +6,7 @@ type LoginRequest struct {
 }
 
 type Item struct {
-	ID          int    `json:"id omitempty"`
+	ID          int    `json:"id,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Quantity    int    `json:"quantity"`

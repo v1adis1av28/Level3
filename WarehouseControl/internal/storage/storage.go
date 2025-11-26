@@ -190,6 +190,36 @@ func (s *Storage) UpdateItem(itemId int, updateReq *models.Item) error {
 }
 
 func (s *Storage) DeleteItem(itemId int) error {
-	//TODO implement me
+	query := "DELETE FROM ITEMS WHERE ID = $1;"
+	exist, err := s.isIdExist(itemId)
+	if err != nil || !exist {
+		return err
+	}
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		zlog.Logger.Err(err)
+		return fmt.Errorf("error on prepare statment deleting item, err: %v", err)
+	}
+	_, err = stmt.Exec(itemId)
+	if err != nil {
+		zlog.Logger.Err(err).Msgf("error on executing delete operation item: %v", itemId)
+		return fmt.Errorf("error on execuring delete op, error: %v", err)
+	}
+
+	zlog.Logger.Info().Msgf("Succesfully delete item, itemId: %v", itemId)
 	return nil
+}
+
+func (s *Storage) isIdExist(id int) (bool, error) {
+	var exist bool
+	stmt, err := s.DB.Master.Prepare("SELECT EXISTS (SELECT 1 FROM items WHERE id = $1);")
+	if err != nil {
+		return false, err
+	}
+
+	err = stmt.QueryRow(id).Scan(&exist)
+	if err != nil || !exist {
+		return false, fmt.Errorf("id not found")
+	}
+	return true, nil
 }

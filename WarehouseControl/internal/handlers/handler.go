@@ -22,7 +22,7 @@ type AuthHandler interface {
 	LoginUser(req *models.LoginRequest) error
 }
 
-func Login(s *storage.Storage, secret string) ginext.HandlerFunc {
+func Login(s AuthHandler, secret string) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
 		var req models.LoginRequest
 		err := c.ShouldBindJSON(&req)
@@ -121,6 +121,23 @@ func UpdateItem(s *storage.Storage) ginext.HandlerFunc {
 		}
 
 		c.JSON(200, ginext.H{"result": "item succesfuly updated", "item": item})
+	}
+}
+
+func DeleteItem(s *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(400, ginext.H{"error": "invalid item id"})
+			return
+		}
+		err = s.DeleteItem(id)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, ginext.H{"result": "deleted item", "itemId": id})
 	}
 }
 
