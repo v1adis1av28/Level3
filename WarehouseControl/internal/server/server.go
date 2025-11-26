@@ -45,8 +45,8 @@ func (s *Server) setupRoutes(jwtSecret string) {
 	//s.Router.Static("/static", "./internal/web/static")
 	s.Router.POST("/auth/login", handlers.Login(s.Storage, jwtSecret))
 	//Для остальных роутов нужно использовать мидлварь на авторизацию
-	s.Router.POST("/items", middleware.AuthMiddleware(jwtSecret), handlers.CreateItem(s.Storage))
+	s.Router.POST("/items", middleware.AuthMiddleware(jwtSecret), handlers.CreateItem(s.Storage, jwtSecret))
 	s.Router.GET("/items", middleware.AuthMiddleware(jwtSecret), handlers.GetItems(s.Storage))
-	s.Router.PUT("/items/:id", middleware.AuthMiddleware(jwtSecret), handlers.UpdateItem(s.Storage))
-	s.Router.DELETE("/items/:id", middleware.AuthMiddleware(jwtSecret), handlers.DeleteItem(s.Storage))
+	s.Router.PUT("/items/:id", middleware.AuthMiddleware(jwtSecret), handlers.UpdateItem(s.Storage, jwtSecret))
+	s.Router.DELETE("/items/:id", middleware.AuthMiddleware(jwtSecret), handlers.DeleteItem(s.Storage, jwtSecret))
 }

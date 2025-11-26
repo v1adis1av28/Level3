@@ -11,3 +11,8 @@ type Item struct {
 	Description string `json:"description"`
 	Quantity    int    `json:"quantity"`
 }
+
+type Payload struct {
+	Username string
+	Role     string
+}

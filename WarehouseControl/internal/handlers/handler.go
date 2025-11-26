@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/v1adis1av28/Level3/WarehouseControl/internal/jwt"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/models"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/storage"
 	"github.com/v1adis1av28/Level3/WarehouseControl/internal/validate"
@@ -45,7 +43,7 @@ func Login(s AuthHandler, secret string) ginext.HandlerFunc {
 				return
 			}
 		}
-		token, err := generateToken(secret, &req)
+		token, err := jwt.GenerateToken(secret, &req)
 		if err != nil {
 			c.JSON(500, ginext.H{"error": err.Error()})
 			return
@@ -57,10 +55,16 @@ func Login(s AuthHandler, secret string) ginext.HandlerFunc {
 	}
 }
 
-func CreateItem(s *storage.Storage) ginext.HandlerFunc {
+func CreateItem(s *storage.Storage, secret string) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
+		payload, err := jwt.ExtractPayloadFromClaims(c.GetHeader("Authorization")[7:], secret)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
 		var item models.Item
-		err := c.ShouldBindJSON(&item)
+		err = c.ShouldBindJSON(&item)
 		if err != nil {
 			c.JSON(400, ginext.H{"error": err.Error()})
 			return
@@ -70,7 +74,7 @@ func CreateItem(s *storage.Storage) ginext.HandlerFunc {
 			return
 		}
 
-		err = s.CreateItem(&item)
+		err = s.CreateItem(&item, payload.Username)
 		if err != nil {
 			c.JSON(500, ginext.H{"error": err.Error()})
 			return
@@ -96,10 +100,20 @@ func GetItems(s *storage.Storage) ginext.HandlerFunc {
 	}
 }
 
-func UpdateItem(s *storage.Storage) ginext.HandlerFunc {
+func UpdateItem(s *storage.Storage, secret string) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
+		payload, err := jwt.ExtractPayloadFromClaims(c.GetHeader("Authorization")[7:], secret)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+		if payload.Role != "admin" && payload.Role != "manager" {
+			c.JSON(403, ginext.H{"error": "you don`t have permission for changing item"})
+			return
+		}
+
 		var item models.Item
-		err := c.ShouldBindJSON(&item)
+		err = c.ShouldBindJSON(&item)
 		if err != nil {
 			c.JSON(400, ginext.H{"error": err.Error()})
 			return
@@ -114,7 +128,7 @@ func UpdateItem(s *storage.Storage) ginext.HandlerFunc {
 			c.JSON(400, ginext.H{"error": "invalid item id"})
 			return
 		}
-		err = s.UpdateItem(id, &item)
+		err = s.UpdateItem(id, &item, payload.Username)
 		if err != nil {
 			c.JSON(500, ginext.H{"error": err.Error()})
 			return
@@ -124,14 +138,24 @@ func UpdateItem(s *storage.Storage) ginext.HandlerFunc {
 	}
 }
 
-func DeleteItem(s *storage.Storage) ginext.HandlerFunc {
+func DeleteItem(s *storage.Storage, secret string) ginext.HandlerFunc {
 	return func(c *ginext.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			c.JSON(400, ginext.H{"error": "invalid item id"})
 			return
 		}
-		err = s.DeleteItem(id)
+		payload, err := jwt.ExtractPayloadFromClaims(c.GetHeader("Authorization")[7:], secret)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+		if payload.Role != "admin" {
+			c.JSON(403, ginext.H{"error": "you don`t have permission for deleting item"})
+			return
+		}
+
+		err = s.DeleteItem(id, payload.Username)
 		if err != nil {
 			c.JSON(500, ginext.H{"error": err.Error()})
 			return
@@ -139,16 +163,4 @@ func DeleteItem(s *storage.Storage) ginext.HandlerFunc {
 
 		c.JSON(200, ginext.H{"result": "deleted item", "itemId": id})
 	}
-}
-
-// todo мб перекинуть в отдельный пакет
-func generateToken(secret string, req *models.LoginRequest) (string, error) {
-	claims := jwt.MapClaims{
-		"role":     strings.ToLower(req.Role),
-		"username": strings.ToLower(req.Username),
-		"exp":      time.Now().Add(time.Hour * 4).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
 }
