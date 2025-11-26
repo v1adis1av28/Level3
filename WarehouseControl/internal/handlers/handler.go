@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/wb-go/wbf/ginext"
 )
 
+// todo add this роли пользователей. Например: admin — полный доступ; manager — может смотреть и редактировать; viewer — только просмотр;
 type ControlHandler interface {
 }
 
@@ -91,6 +93,34 @@ func GetItems(s *storage.Storage) ginext.HandlerFunc {
 			return
 		}
 		c.JSON(200, ginext.H{"items": items})
+	}
+}
+
+func UpdateItem(s *storage.Storage) ginext.HandlerFunc {
+	return func(c *ginext.Context) {
+		var item models.Item
+		err := c.ShouldBindJSON(&item)
+		if err != nil {
+			c.JSON(400, ginext.H{"error": err.Error()})
+			return
+		}
+		if !validate.IsValidItemRequest(&item) {
+			c.JSON(400, ginext.H{"error": "invalid item request"})
+			return
+		}
+
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(400, ginext.H{"error": "invalid item id"})
+			return
+		}
+		err = s.UpdateItem(id, &item)
+		if err != nil {
+			c.JSON(500, ginext.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, ginext.H{"result": "item succesfuly updated", "item": item})
 	}
 }
 

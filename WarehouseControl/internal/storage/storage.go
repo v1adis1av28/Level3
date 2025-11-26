@@ -173,7 +173,19 @@ func (s *Storage) GetItems() ([]models.Item, error) {
 }
 
 func (s *Storage) UpdateItem(itemId int, updateReq *models.Item) error {
-	//TODO implement me
+	query := "UPDATE ITEMS SET NAME=$1, DESCRIPTION=$2, QUANTITY=$3, UPDATED_AT=CURRENT_TIMESTAMP WHERE ID=$4;"
+	stmt, err := s.DB.Master.Prepare(query)
+	if err != nil {
+		zlog.Logger.Err(err)
+		return fmt.Errorf("error on prepare statment update item, err: %v", err)
+	}
+	_, err = stmt.Exec(updateReq.Name, updateReq.Description, updateReq.Quantity, itemId)
+	if err != nil {
+		zlog.Logger.Err(err).Msgf("error on executing update operation item: %v", updateReq)
+		return fmt.Errorf("error on execuring update op, error: %v", err)
+	}
+
+	zlog.Logger.Info().Msgf("Succesfully update item, item: %v", updateReq)
 	return nil
 }
 
